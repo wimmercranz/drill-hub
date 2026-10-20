@@ -22,6 +22,13 @@ export function useFormAction(action: (state: FormState, formData: FormData) => 
 }
 
 export function FormError({ state }: { state: FormState }) {
+  if (state?.success) {
+    return (
+      <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700" role="status">
+        {state.success}
+      </p>
+    );
+  }
   if (!state?.error) return null;
   return (
     <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">

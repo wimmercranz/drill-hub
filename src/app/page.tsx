@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { drillCardInclude } from "@/lib/drills";
+import { drillCardInclude, usedCount } from "@/lib/drills";
 import DrillCard, { DrillGrid } from "@/components/DrillCard";
 
 export default async function Home() {
@@ -14,7 +14,7 @@ export default async function Home() {
     }),
   ]);
   const popular = [...drills]
-    .sort((a, b) => b._count.saves + b._count.teamDrills - (a._count.saves + a._count.teamDrills))
+    .sort((a, b) => usedCount(b) - usedCount(a))
     .slice(0, 8);
   const newest = [...drills].sort((a, b) => +b.createdAt - +a.createdAt).slice(0, 4);
 
@@ -54,7 +54,7 @@ export default async function Home() {
 
       <section className="container-page pb-10">
         <div className="mb-4 flex items-end justify-between">
-          <h2 className="text-xl font-bold">Most collected</h2>
+          <h2 className="text-xl font-bold">Most used drills</h2>
           <Link href="/drills?sort=popular" className="text-sm font-semibold text-brand-700">See all →</Link>
         </div>
         <DrillGrid>

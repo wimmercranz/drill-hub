@@ -23,7 +23,10 @@ export default async function MePage() {
   return (
     <div className="container-page py-8">
       <h1 className="text-3xl font-extrabold tracking-tight">Hi {user.name.split(" ")[0]} 👋</h1>
-      <p className="text-ink-500">Your personal drill collection.</p>
+      <p className="text-ink-500">
+        Your personal drill collection ·{" "}
+        <Link href="/settings" className="font-semibold text-brand-700">Profile & clubs settings</Link>
+      </p>
 
       {memberships.length > 0 && (
         <div className="mt-6 flex flex-wrap gap-2">

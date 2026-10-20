@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { LEVELS, drillCardInclude, visibleTo } from "@/lib/drills";
+import { LEVELS, drillCardInclude, usedCount, visibleTo } from "@/lib/drills";
 import DrillCard, { DrillGrid } from "@/components/DrillCard";
 
 export const metadata = { title: "Drills" };
@@ -29,12 +29,11 @@ export default async function DrillsPage({ searchParams }: { searchParams: Promi
     db.category.findMany({ where: { sport: { slug: "basketball" } }, orderBy: { order: "asc" } }),
   ]);
 
-  const score = (d: (typeof drills)[number]) => d._count.saves + d._count.teamDrills;
   drills.sort((a, b) =>
     sort === "new" ? +b.createdAt - +a.createdAt
     : sort === "az" ? a.title.localeCompare(b.title)
     : sort === "short" ? a.durationMin - b.durationMin
-    : score(b) - score(a) || a.title.localeCompare(b.title),
+    : usedCount(b) - usedCount(a) || a.title.localeCompare(b.title),
   );
 
   const activeCat = categories.find((c) => c.slug === cat);
@@ -66,7 +65,7 @@ export default async function DrillsPage({ searchParams }: { searchParams: Promi
           <option value="no">Text only</option>
         </select>
         <select name="sort" defaultValue={sort} className="input">
-          <option value="popular">Most collected</option>
+          <option value="popular">Most used</option>
           <option value="new">Newest</option>
           <option value="short">Shortest</option>
           <option value="az">A–Z</option>

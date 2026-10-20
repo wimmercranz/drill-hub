@@ -67,13 +67,40 @@ async function main() {
   const coach = await prisma.user.upsert({
     where: { email: "coach@drillhub.test" },
     update: {},
-    create: { name: "Casey Coach", email: "coach@drillhub.test", passwordHash },
+    create: {
+      name: "Casey Coach",
+      email: "coach@drillhub.test",
+      username: "casey-coach",
+      bio: "Youth coach · U14 Hawks · Big believer in defense first.",
+      profileVisibility: "PUBLIC",
+      passwordHash,
+    },
   });
   const player = await prisma.user.upsert({
     where: { email: "player@drillhub.test" },
     update: {},
-    create: { name: "Pat Player", email: "player@drillhub.test", passwordHash },
+    create: { name: "Pat Player", email: "player@drillhub.test", username: "pat-player", passwordHash },
   });
+
+  // Give any older accounts (created before profiles existed) a username.
+  for (const u of await prisma.user.findMany({ where: { username: null } })) {
+    let username = slugify(u.name) || "user";
+    for (let i = 2; await prisma.user.findUnique({ where: { username } }); i++) username = `${slugify(u.name)}-${i}`;
+    await prisma.user.update({ where: { id: u.id }, data: { username } });
+  }
+
+  const club = await prisma.club.upsert({
+    where: { slug: "demo-basketball-club" },
+    update: {},
+    create: { slug: "demo-basketball-club", name: "Demo Basketball Club", city: "Stockholm" },
+  });
+  for (const [user, role] of [[coach, "ADMIN"], [player, "MEMBER"]] as const) {
+    await prisma.clubMember.upsert({
+      where: { userId_clubId: { userId: user.id, clubId: club.id } },
+      update: {},
+      create: { userId: user.id, clubId: club.id, role },
+    });
+  }
 
   const team = await prisma.team.upsert({
     where: { inviteCode: "HAWKS1" },

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { DrillCardData } from "@/lib/drills";
-import { levelLabel } from "@/lib/drills";
+import { levelLabel, usedCount } from "@/lib/drills";
 import { thumbnailUrl } from "@/lib/video";
 
 const levelColor: Record<string, string> = {
@@ -11,7 +11,7 @@ const levelColor: Record<string, string> = {
 
 export default function DrillCard({ drill, footer }: { drill: DrillCardData; footer?: React.ReactNode }) {
   const thumb = thumbnailUrl(drill.videoUrl);
-  const collected = drill._count.saves + drill._count.teamDrills;
+  const used = usedCount(drill);
   return (
     <div className="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md">
       <Link href={`/drills/${drill.slug}`} className="flex flex-1 flex-col">
@@ -40,7 +40,9 @@ export default function DrillCard({ drill, footer }: { drill: DrillCardData; foo
             <span className={`chip ${levelColor[drill.level] ?? ""}`}>{levelLabel(drill.level)}</span>
             <span className="chip">{drill.durationMin} min</span>
             <span className="chip">{drill.minPlayers}+ players</span>
-            {collected > 0 && <span className="ml-auto text-xs text-ink-500">★ {collected}</span>}
+            <span className="ml-auto text-xs font-semibold text-ink-500" title="Times added to a profile or team library">
+              {used > 0 ? `🔥 Used ${used}×` : "New"}
+            </span>
           </div>
         </div>
       </Link>

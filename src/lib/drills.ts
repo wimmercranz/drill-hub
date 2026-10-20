@@ -46,3 +46,6 @@ export async function coachedTeams(userId: string) {
     orderBy: { name: "asc" },
   });
 }
+
+/** How many times a drill has been "used": saved to a profile or added to a team library. */
+export const usedCount = (d: { _count: { saves: number; teamDrills: number } }) => d._count.saves + d._count.teamDrills;

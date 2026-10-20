@@ -18,12 +18,18 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
 
+  // Profile
+  username          String? @unique // used in the profile URL: /u/<username>
+  bio               String  @default("")
+  profileVisibility String  @default("PRIVATE") // PUBLIC | PRIVATE
+
   sessions      Session[]
   memberships   Membership[]
   drills        Drill[]         @relation("DrillAuthor")
   saves         PersonalSave[]
   teamDrillsAdd TeamDrill[]
   plans         PracticePlan[]
+  clubs         ClubMember[]
 }
 
 model Session {
@@ -176,4 +182,28 @@ model PracticePlanItem {
 
   plan  PracticePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
   drill Drill        @relation(fields: [drillId], references: [id], onDelete: Cascade)
+}
+
+// A sports club, e.g. "Södermalm Basket". Users can belong to several clubs.
+model Club {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  city      String   @default("")
+  createdAt DateTime @default(now())
+
+  members ClubMember[]
+}
+
+model ClubMember {
+  id        String   @id @default(cuid())
+  role      String   @default("MEMBER") // MEMBER | ADMIN
+  createdAt DateTime @default(now())
+  userId    String
+  clubId    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clubId])
 }

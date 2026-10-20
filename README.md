@@ -4,12 +4,15 @@ A website where players and coaches discover sports drills, **collect** the ones
 
 Starting with basketball. The data model is multi-sport from day one, so other sports can be added later.
 
-## What it can do (v0.1)
+## What it can do (v0.2)
 
-- **Drill library**: 37 curated basketball drills with embedded YouTube videos, setup, steps, coaching points and variations. Search, filter by skill and level, and sort by popularity.
+- **Drill library**: 37 curated basketball drills with embedded YouTube videos, setup, steps, coaching points and variations. Search, filter by skill and level, and sort by how often each drill is used.
 - **Collect drills**: save any drill to *My Drills*. Coaches can also add it to a team's library.
+- **"Used" counter**: every drill shows how many times it has been added to a profile or team library.
 - **Create drills**: with or without a video (text-only is fine), visible to *everyone*, *my team* or *only me*.
 - **Teams**: create a team (you become the coach) and invite players with a code or link. Roles are per team, so you can coach one team and play on another.
+- **Profiles**: every account has a profile page (`/u/username`) with a bio, clubs, teams and collected drills. It's **public** or **private** (private = only you and your teammates can see it, and new accounts start private).
+- **Clubs**: find, join or create your club and it shows on your profile. Whoever creates a club becomes its admin and can manage members.
 - **Practice planner**: coaches put drills in order with times, add notes and print the plan. Players can view it.
 
 ## Run it on your computer
@@ -52,7 +55,7 @@ Open <http://localhost:3000> in your browser. Stop the app with `Ctrl + C`.
 | `npm run dev` | Start the app for development |
 | `npm run db:studio` | Open a spreadsheet-like view of the database in your browser |
 | `npm run db:reset` | Wipe the local database and reload the starter drills |
-| `git pull` | Get the latest changes from GitHub |
+| `git pull` then `npm install` and `npm run setup` | Get the latest changes from GitHub and update your database |
 
 ## How it's built
 
@@ -74,7 +77,8 @@ Videos are **embedded** from YouTube, never downloaded or re-hosted. Every drill
 
 ## Roadmap
 
-- [ ] Club admin role: a club with several teams and a shared club library
+- [x] Profiles (public/private) and clubs
+- [ ] Club admin tools: link teams to a club, shared club library
 - [ ] Ratings and comments on drills
 - [ ] Assign drills to players as "homework"
 - [ ] Court diagram editor for drills without video

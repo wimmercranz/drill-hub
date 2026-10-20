@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { logout } from "@/app/actions/auth";
+import { profileHref } from "@/lib/profiles";
+import Avatar from "./Avatar";
 
 export default async function Header() {
   const user = await getCurrentUser();
@@ -20,7 +22,9 @@ export default async function Header() {
           {user ? (
             <>
               <Link href="/drills/new" className="btn-primary hidden sm:inline-flex">+ New drill</Link>
-              <span className="hidden text-sm text-ink-500 md:inline">{user.name}</span>
+              <Link href={profileHref(user)} title="My profile" className="flex items-center gap-2 rounded-full hover:opacity-80">
+                <Avatar name={user.name} size="sm" />
+              </Link>
               <form action={logout}>
                 <button className="btn-ghost">Log out</button>
               </form>

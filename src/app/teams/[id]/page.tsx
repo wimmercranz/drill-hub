@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { drillCardInclude } from "@/lib/drills";
+import { profileHref } from "@/lib/profiles";
 import { toggleTeamDrill } from "@/app/actions/drills";
 import { regenerateInvite, removeMember, setMemberRole, updateTeamDrillNote } from "@/app/actions/teams";
 import { createPlan } from "@/app/actions/plans";
@@ -21,7 +22,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
     where: { id },
     include: {
       sport: true,
-      memberships: { include: { user: { select: { id: true, name: true, email: true } } }, orderBy: [{ role: "asc" }, { createdAt: "asc" }] },
+      memberships: { include: { user: { select: { id: true, name: true, email: true, username: true } } }, orderBy: [{ role: "asc" }, { createdAt: "asc" }] },
       drills: { include: { drill: { include: drillCardInclude } }, orderBy: { createdAt: "desc" } },
       plans: { include: { items: true }, orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
     },
@@ -132,7 +133,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
             <div key={m.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
               <span className="grid h-9 w-9 place-items-center rounded-full bg-slate-200 text-sm font-bold">{m.user.name.slice(0, 1).toUpperCase()}</span>
               <div className="min-w-0 flex-1">
-                <p className="font-medium">{m.user.name}{m.userId === user.id && " (you)"}</p>
+                <Link href={profileHref(m.user)} className="font-medium hover:text-brand-700">{m.user.name}{m.userId === user.id && " (you)"}</Link>
                 {isCoach && <p className="truncate text-xs text-ink-500">{m.user.email}</p>}
               </div>
               <span className={`chip ${m.role === "COACH" ? "bg-brand-100 text-brand-700" : ""}`}>{m.role === "COACH" ? "Coach" : "Player"}</span>

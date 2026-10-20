@@ -5,8 +5,9 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { createSession, destroySession } from "@/lib/auth";
+import { uniqueUsername } from "@/lib/profiles";
 
-export type FormState = { error?: string } | undefined;
+export type FormState = { error?: string; success?: string } | undefined;
 
 const safeNext = (next: FormDataEntryValue | null) => {
   const n = typeof next === "string" ? next : "";
@@ -28,7 +29,7 @@ export async function signup(_: FormState, formData: FormData): Promise<FormStat
     return { error: "An account with this email already exists." };
   }
   const user = await db.user.create({
-    data: { name, email, passwordHash: await bcrypt.hash(password, 10) },
+    data: { name, email, username: await uniqueUsername(name), passwordHash: await bcrypt.hash(password, 10) },
   });
   await createSession(user.id);
   redirect(safeNext(formData.get("next")));

@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { coachedTeams, drillCardInclude, levelLabel, lines, visibleTo } from "@/lib/drills";
+import { coachedTeams, drillCardInclude, levelLabel, lines, usedCount, visibleTo } from "@/lib/drills";
 import { embedUrl } from "@/lib/video";
+import { profileHref } from "@/lib/profiles";
 import { deleteDrill, toggleSave, toggleTeamDrill } from "@/app/actions/drills";
 import DrillCard from "@/components/DrillCard";
 import SubmitButton from "@/components/SubmitButton";
@@ -16,7 +17,7 @@ async function loadDrill(slug: string, userId: string | null) {
     where: { AND: [{ slug }, visibleTo(userId)] },
     include: {
       ...drillCardInclude,
-      author: { select: { id: true, name: true } },
+      author: { select: { id: true, name: true, username: true } },
       team: { select: { id: true, name: true } },
     },
   });
@@ -64,7 +65,7 @@ export default async function DrillPage({ params }: Props) {
   const steps = lines(drill.steps);
   const points = lines(drill.coachingPoints);
   const variations = lines(drill.variations);
-  const collected = drill._count.saves + drill._count.teamDrills;
+  const used = usedCount(drill);
   const isAuthor = !!user && drill.authorId === user.id;
 
   return (
@@ -154,8 +155,15 @@ export default async function DrillPage({ params }: Props) {
 
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           <div className="card p-5">
-            <h2 className="font-bold">Collect this drill</h2>
-            <p className="mb-4 text-sm text-ink-500">Collected {collected} time{collected === 1 ? "" : "s"}</p>
+            <div className="mb-4 flex items-center gap-3">
+              <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-brand-50 text-2xl font-extrabold text-brand-700">{used}</div>
+              <div>
+                <h2 className="font-bold">Used {used} time{used === 1 ? "" : "s"}</h2>
+                <p className="text-xs text-ink-500">
+                  {drill._count.saves} personal collection{drill._count.saves === 1 ? "" : "s"} · {drill._count.teamDrills} team librar{drill._count.teamDrills === 1 ? "y" : "ies"}
+                </p>
+              </div>
+            </div>
             {user ? (
               <div className="space-y-2">
                 <form action={toggleSave.bind(null, drill.id, drill.slug)}>
@@ -186,7 +194,7 @@ export default async function DrillPage({ params }: Props) {
 
           <div className="card p-5 text-sm text-ink-700">
             <p>
-              {drill.author ? <>Added by <strong>{drill.author.name}</strong></> : <>Curated by <strong>Drill Hub</strong></>}
+              {drill.author ? <>Added by <Link href={profileHref(drill.author)} className="font-semibold hover:text-brand-700">{drill.author.name}</Link></> : <>Curated by <strong>Drill Hub</strong></>}
             </p>
             {drill.team && <p className="mt-1">Visible to team <strong>{drill.team.name}</strong></p>}
             {drill.visibility === "PRIVATE" && <p className="mt-1">🔒 Only you can see this drill</p>}
