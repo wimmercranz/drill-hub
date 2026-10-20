@@ -1,0 +1,179 @@
+// Drill Hub database schema.
+// Locally this uses a SQLite file (prisma/dev.db). For production we will
+// switch the provider to "postgresql" and point DATABASE_URL at a hosted DB.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  sessions      Session[]
+  memberships   Membership[]
+  drills        Drill[]         @relation("DrillAuthor")
+  saves         PersonalSave[]
+  teamDrillsAdd TeamDrill[]
+  plans         PracticePlan[]
+}
+
+model Session {
+  id        String   @id // sha256 hash of the cookie token
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// A sport, e.g. basketball. Only "active" sports are shown in the UI.
+model Sport {
+  id     String  @id @default(cuid())
+  slug   String  @unique
+  name   String
+  emoji  String
+  active Boolean @default(false)
+
+  categories Category[]
+  drills     Drill[]
+  teams      Team[]
+}
+
+// A skill category within a sport, e.g. "Shooting" for basketball.
+model Category {
+  id      String @id @default(cuid())
+  slug    String
+  name    String
+  sportId String
+  order   Int    @default(0)
+
+  sport  Sport   @relation(fields: [sportId], references: [id], onDelete: Cascade)
+  drills Drill[]
+
+  @@unique([sportId, slug])
+}
+
+model Drill {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  title          String
+  summary        String
+  setup          String   @default("")
+  steps          String   @default("") // one step per line
+  coachingPoints String   @default("") // one point per line
+  variations     String   @default("") // one variation per line
+  level          String   @default("BEGINNER") // BEGINNER | INTERMEDIATE | ADVANCED
+  minPlayers     Int      @default(1)
+  durationMin    Int      @default(10)
+  equipment      String   @default("")
+  videoUrl       String?
+  sourceTitle    String? // title of the original video/article we credit
+  sourceUrl      String?
+  visibility     String   @default("PUBLIC") // PUBLIC | TEAM | PRIVATE
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sportId  String
+  authorId String?
+  teamId   String? // owning team when visibility is TEAM
+
+  sport      Sport          @relation(fields: [sportId], references: [id])
+  author     User?          @relation("DrillAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  team       Team?          @relation("TeamOwnedDrills", fields: [teamId], references: [id], onDelete: Cascade)
+  categories Category[]
+  saves      PersonalSave[]
+  teamDrills TeamDrill[]
+  planItems  PracticePlanItem[]
+}
+
+model Team {
+  id         String   @id @default(cuid())
+  name       String
+  inviteCode String   @unique
+  createdAt  DateTime @default(now())
+  sportId    String
+
+  sport       Sport          @relation(fields: [sportId], references: [id])
+  memberships Membership[]
+  drills      TeamDrill[]
+  ownedDrills Drill[]        @relation("TeamOwnedDrills")
+  plans       PracticePlan[]
+}
+
+// A user's role is per team: the same person can coach one team and play on another.
+model Membership {
+  id        String   @id @default(cuid())
+  role      String   @default("PLAYER") // PLAYER | COACH
+  createdAt DateTime @default(now())
+  userId    String
+  teamId    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId])
+}
+
+// A drill a user "collected" to their personal page.
+model PersonalSave {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  userId    String
+  drillId   String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drill Drill @relation(fields: [drillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, drillId])
+}
+
+// A drill collected into a team's library.
+model TeamDrill {
+  id        String   @id @default(cuid())
+  note      String   @default("")
+  createdAt DateTime @default(now())
+  teamId    String
+  drillId   String
+  addedById String?
+
+  team    Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  drill   Drill @relation(fields: [drillId], references: [id], onDelete: Cascade)
+  addedBy User? @relation(fields: [addedById], references: [id], onDelete: SetNull)
+
+  @@unique([teamId, drillId])
+}
+
+model PracticePlan {
+  id        String    @id @default(cuid())
+  title     String
+  date      DateTime?
+  notes     String    @default("")
+  createdAt DateTime  @default(now())
+  teamId    String
+  authorId  String?
+
+  team   Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  author User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  items  PracticePlanItem[]
+}
+
+model PracticePlanItem {
+  id          String @id @default(cuid())
+  order       Int
+  durationMin Int
+  note        String @default("")
+  planId      String
+  drillId     String
+
+  plan  PracticePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  drill Drill        @relation(fields: [drillId], references: [id], onDelete: Cascade)
+}
