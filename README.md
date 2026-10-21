@@ -83,15 +83,20 @@ Videos are **embedded** from YouTube, never downloaded or re-hosted. Every drill
 - [ ] Club admins + duplicate protection: "Did you mean…?" suggestions for similar club names when creating a club
 - [ ] Coaching staff: head coach + assistant coaches per team — *decided: all coaches get the same rights, so the team keeps working if the head coach leaves*
 - [ ] Invitation e-mails for players and coaches
-- [ ] Sign in with Google / Apple (and similar)
+- [ ] Sign in with Google + email/password — *decided: start with these two; Apple etc. later*
 - [ ] Practice schedule: set practice times (e.g. every Tue & Thu 18:00–19:30) and get an empty plan slot for each practice — *decided: usually fixed per semester; changing the schedule updates all future practices (past ones stay as they were)*
 - [ ] Time feedback while planning: planned minutes vs. available practice time
 - [ ] Quick post-practice poll: "How would you rate this practice?" (1–4), with results for coaches — *decided: answers are anonymous*
 - [ ] Show "✓ Saved" / "In [team]" badges on drill cards so you can see what you already collected
 
+- [ ] Profile pictures (upload/change your photo)
+- [ ] Terms of use + privacy policy, accepted at sign-up
+- [ ] GDPR compliance: consent at sign-up, download my data, delete my account, privacy policy, cookie notice if needed, care around minors (parental consent for young players), data processing agreements with hosting providers
+
 **Later:**
+- [ ] "Holiday bundles": one-time drill packages for players, e.g. a summer holiday program
 - [ ] Club admin tools: link teams to a club, shared club library
-- [ ] Ratings and comments on drills
+- [ ] Comments on drills — *decided: start without comments; if added, keep them limited and use an AI moderation agent to screen for hate speech and illegal content before posting*
 - [ ] Assign drills to players as "homework"
 - [ ] Court diagram editor for drills without video
 - [ ] "Import from YouTube link" that fills in the title and thumbnail automatically
