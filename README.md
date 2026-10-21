@@ -81,12 +81,13 @@ Videos are **embedded** from YouTube, never downloaded or re-hosted. Every drill
 
 **Next up (from testing feedback):**
 - [ ] Club admins + duplicate protection: "Did you mean…?" suggestions for similar club names when creating a club
-- [ ] Coaching staff: head coach + assistant coaches per team
+- [ ] Coaching staff: head coach + assistant coaches per team — *decided: all coaches get the same rights, so the team keeps working if the head coach leaves*
 - [ ] Invitation e-mails for players and coaches
 - [ ] Sign in with Google / Apple (and similar)
-- [ ] Practice schedule: set practice times (e.g. every Tue & Thu 18:00–19:30) and get an empty plan slot for each practice
+- [ ] Practice schedule: set practice times (e.g. every Tue & Thu 18:00–19:30) and get an empty plan slot for each practice — *decided: usually fixed per semester; changing the schedule updates all future practices (past ones stay as they were)*
 - [ ] Time feedback while planning: planned minutes vs. available practice time
-- [ ] Quick post-practice poll: "How would you rate this practice?" (1–4), with results for coaches
+- [ ] Quick post-practice poll: "How would you rate this practice?" (1–4), with results for coaches — *decided: answers are anonymous*
+- [ ] Show "✓ Saved" / "In [team]" badges on drill cards so you can see what you already collected
 
 **Later:**
 - [ ] Club admin tools: link teams to a club, shared club library
