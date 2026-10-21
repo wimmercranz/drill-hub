@@ -78,6 +78,17 @@ Videos are **embedded** from YouTube, never downloaded or re-hosted. Every drill
 ## Roadmap
 
 - [x] Profiles (public/private) and clubs
+
+**Next up (from testing feedback):**
+- [ ] Club admins + duplicate protection: "Did you mean…?" suggestions for similar club names when creating a club
+- [ ] Coaching staff: head coach + assistant coaches per team
+- [ ] Invitation e-mails for players and coaches
+- [ ] Sign in with Google / Apple (and similar)
+- [ ] Practice schedule: set practice times (e.g. every Tue & Thu 18:00–19:30) and get an empty plan slot for each practice
+- [ ] Time feedback while planning: planned minutes vs. available practice time
+- [ ] Quick post-practice poll: "How would you rate this practice?" (1–4), with results for coaches
+
+**Later:**
 - [ ] Club admin tools: link teams to a club, shared club library
 - [ ] Ratings and comments on drills
 - [ ] Assign drills to players as "homework"
