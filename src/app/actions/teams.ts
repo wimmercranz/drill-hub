@@ -170,3 +170,15 @@ export async function acceptInvite(token: string) {
   ]);
   redirect(`/teams/${invite.teamId}`);
 }
+
+/** Permanently delete a team with its practices, schedule, library and invitations. */
+export async function deleteTeam(teamId: string, _: FormState, formData: FormData): Promise<FormState> {
+  await requireCoach(teamId);
+  const team = await db.team.findUniqueOrThrow({ where: { id: teamId } });
+  if (String(formData.get("confirm") ?? "").trim() !== team.name) {
+    return { error: `Type the team name “${team.name}” exactly to confirm.` };
+  }
+  await db.team.delete({ where: { id: teamId } });
+  revalidatePath("/", "layout");
+  redirect("/teams?deleted=1");
+}

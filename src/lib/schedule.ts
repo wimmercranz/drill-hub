@@ -2,12 +2,20 @@ import "server-only";
 import { db } from "./db";
 import { WEEKDAYS, nowIn, occurrences } from "./time";
 
+const AUTO_TITLE = new RegExp(`^(${WEEKDAYS.join("|")}) practice$`);
+
+/** Automatic names like "Tuesday practice" follow the weekday when practices move. */
+export const isAutoTitle = (title: string) => AUTO_TITLE.test(title);
+
+/** The name practices in a series get: the series name, or "<Weekday> practice". */
+export const seriesTitle = (s: { title: string; weekday: number }) => s.title || `${WEEKDAYS[s.weekday]} practice`;
+
 /**
  * Make the future practices of a schedule match its settings.
  * Past practices are never touched. Future practices keep their drills when they move;
  * surplus future practices are removed if empty, or kept (unlinked) if they already have drills.
  */
-export async function syncSchedule(scheduleId: string) {
+export async function syncSchedule(scheduleId: string, previousTitle?: string) {
   const schedule = await db.practiceSchedule.findUniqueOrThrow({ where: { id: scheduleId }, include: { team: true } });
   const now = nowIn(schedule.team.timezone);
   const wanted = occurrences(schedule.weekday, schedule.startTime, schedule.startsOn, schedule.endsOn).filter((d) => d > now);
@@ -23,11 +31,13 @@ export async function syncSchedule(scheduleId: string) {
     const plan = existing[i];
     const data = { startsAt: date, durationMin: schedule.durationMin, location: schedule.location };
     if (date && plan) {
-      ops.push(db.practicePlan.update({ where: { id: plan.id }, data }));
+      // Practices still using the series name get the new one; individually renamed practices keep theirs.
+      const rename = isAutoTitle(plan.title) || plan.title === previousTitle ? { title: seriesTitle(schedule) } : {};
+      ops.push(db.practicePlan.update({ where: { id: plan.id }, data: { ...data, ...rename } }));
     } else if (date) {
       ops.push(
         db.practicePlan.create({
-          data: { ...data, title: `${WEEKDAYS[schedule.weekday]} practice`, teamId: schedule.teamId, scheduleId },
+          data: { ...data, title: seriesTitle(schedule), teamId: schedule.teamId, scheduleId },
         }),
       );
     } else if (plan._count.items === 0) {

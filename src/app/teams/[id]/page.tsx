@@ -9,7 +9,7 @@ import { profileHref } from "@/lib/profiles";
 import { WEEKDAYS, addMinutes, formatDate, formatTime, nowIn, toDateInput } from "@/lib/time";
 import { toggleTeamDrill } from "@/app/actions/drills";
 import { addSchedule, createPlan, deleteSchedule, setTeamTimezone, updateSchedule } from "@/app/actions/plans";
-import { inviteByEmail, regenerateInvite, removeMember, revokeInvite, setMemberRole, setMemberTitle, updateTeamDrillNote } from "@/app/actions/teams";
+import { deleteTeam, inviteByEmail, regenerateInvite, removeMember, revokeInvite, setMemberRole, setMemberTitle, updateTeamDrillNote } from "@/app/actions/teams";
 import ActionForm from "@/components/ActionForm";
 import Avatar from "@/components/Avatar";
 import CopyButton from "@/components/CopyButton";
@@ -143,11 +143,17 @@ async function PracticesTab({ teamId, timezone, isCoach, now, showPast }: { team
             <p className="mb-3 text-sm text-ink-500">Each practice gets its own plan. Changing a time moves all future practices.</p>
             {schedules.map((s) => (
               <details key={s.id} className="mb-2 rounded-lg border border-slate-200 p-3">
-                <summary className="cursor-pointer text-sm">
-                  <strong>{WEEKDAYS[s.weekday]}s</strong> {s.startTime} · {s.durationMin} min{s.location && ` · ${s.location}`}
-                  <span className="block text-xs text-ink-500">{formatDate(s.startsOn)} – {formatDate(s.endsOn)}</span>
+                <summary className="flex cursor-pointer list-none items-start gap-2 text-sm">
+                  <span className="flex-1">
+                    {s.title && <span className="block font-semibold">{s.title}</span>}
+                    <strong>{WEEKDAYS[s.weekday]}s</strong> {s.startTime} · {s.durationMin} min{s.location && ` · ${s.location}`}
+                    <span className="block text-xs text-ink-500">{formatDate(s.startsOn)} – {formatDate(s.endsOn)}</span>
+                  </span>
+                  <span className="btn-secondary btn-sm">Edit</span>
                 </summary>
+                <p className="mt-3 text-xs text-ink-500">Changes move all upcoming {WEEKDAYS[s.weekday]} practices. Past practices are kept.</p>
                 <ActionForm action={updateSchedule.bind(null, s.id)} className="mt-3 space-y-2">
+                  <label className="text-xs text-ink-500">Weekday</label>
                   <select name="weekday" defaultValue={s.weekday} className="input">
                     {WEEKDAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}
                   </select>
@@ -171,7 +177,7 @@ async function PracticesTab({ teamId, timezone, isCoach, now, showPast }: { team
                     </label>
                   ))}
                 </div>
-                <ScheduleFields defaults={{ startTime: "18:00", durationMin: 90, location: "", startsOn: null, endsOn: null }} today={today} />
+                <ScheduleFields defaults={{ title: "", startTime: "18:00", durationMin: 90, location: "", startsOn: null, endsOn: null }} today={today} />
                 <SubmitButton className="btn-primary w-full">Create practices</SubmitButton>
               </ActionForm>
             </details>
@@ -210,12 +216,16 @@ function ScheduleFields({
   defaults,
   today,
 }: {
-  defaults: { startTime: string; durationMin: number; location: string; startsOn: Date | null; endsOn: Date | null };
+  defaults: { title: string; startTime: string; durationMin: number; location: string; startsOn: Date | null; endsOn: Date | null };
   today?: string;
 }) {
   const end = today ? toDateInput(new Date(new Date(today).getTime() + 120 * 86_400_000)) : "";
   return (
     <>
+      <label className="block text-xs text-ink-500">
+        Name of the practices
+        <input name="title" defaultValue={defaults.title} placeholder="Automatic, e.g. “Tuesday practice”" className="input" />
+      </label>
       <div className="grid grid-cols-2 gap-2">
         <label className="text-xs text-ink-500">Starts<input name="startTime" type="time" required defaultValue={defaults.startTime} className="input" /></label>
         <label className="text-xs text-ink-500">Minutes<input name="durationMin" type="number" min={15} max={480} required defaultValue={defaults.durationMin} className="input" /></label>
@@ -455,6 +465,25 @@ async function MembersTab({ team, userId, isCoach, origin }: { team: TeamWithMem
                 <SubmitButton className="btn-ghost btn-sm" pendingText="…" confirm="Create a new code? The old link will stop working.">New code</SubmitButton>
               </form>
             </div>
+          </section>
+
+          <section className="card border-red-200 p-5 text-sm">
+            <details>
+              <summary className="cursor-pointer font-bold text-red-700">Delete team</summary>
+              <p className="mt-2 text-ink-700">
+                This permanently deletes <strong>{team.name}</strong> with all its practices, the weekly schedule, poll results, the team drill
+                library and team-only drills. Members keep their accounts and their own drills. <strong>This can&apos;t be undone.</strong>
+              </p>
+              <ActionForm action={deleteTeam.bind(null, team.id)} className="mt-3 space-y-2">
+                <label className="block text-xs text-ink-500">
+                  Type <strong>{team.name}</strong> to confirm
+                  <input name="confirm" autoComplete="off" className="input" />
+                </label>
+                <SubmitButton className="btn w-full bg-red-600 text-white hover:bg-red-700" pendingText="Deleting…" confirm={`Are you sure you want to delete ${team.name}? This can't be undone.`}>
+                  Delete team permanently
+                </SubmitButton>
+              </ActionForm>
+            </details>
           </section>
         </aside>
       )}

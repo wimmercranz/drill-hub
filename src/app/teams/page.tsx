@@ -7,7 +7,8 @@ import SubmitButton from "@/components/SubmitButton";
 
 export const metadata = { title: "Teams" };
 
-export default async function TeamsPage() {
+export default async function TeamsPage({ searchParams }: { searchParams: Promise<{ deleted?: string }> }) {
+  const { deleted } = await searchParams;
   const user = await requireUser("/teams");
   const [memberships, sports] = await Promise.all([
     db.membership.findMany({
@@ -22,6 +23,7 @@ export default async function TeamsPage() {
     <div className="container-page py-8">
       <h1 className="text-3xl font-extrabold tracking-tight">Teams</h1>
       <p className="text-ink-500">Share drills and practice plans with your team.</p>
+      {deleted && <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">The team has been deleted.</p>}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {memberships.map(({ team, role }) => (

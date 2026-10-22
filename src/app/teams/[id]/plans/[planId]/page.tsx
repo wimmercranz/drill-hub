@@ -104,7 +104,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
       {isCoach && (
         <details className="no-print card mt-4 p-4">
-          <summary className="cursor-pointer font-semibold">Edit time, place & notes</summary>
+          <summary className="cursor-pointer font-semibold">✏️ Edit or move this practice{plan.schedule && " (or the whole series)"}</summary>
           <ActionForm action={updatePlanDetails.bind(null, plan.id)} className="mt-3 grid gap-3 sm:grid-cols-2">
             <input name="title" defaultValue={plan.title} className="input sm:col-span-2" />
             <label className="text-xs text-ink-500">Date<input name="date" type="date" defaultValue={toDateInput(plan.startsAt)} className="input" /></label>
@@ -112,7 +112,22 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             <label className="text-xs text-ink-500">Available time (min)<input name="durationMin" type="number" min={15} max={480} defaultValue={plan.durationMin ?? ""} className="input" /></label>
             <label className="text-xs text-ink-500">Location<input name="location" defaultValue={plan.location} className="input" /></label>
             <textarea name="notes" defaultValue={plan.notes} rows={3} placeholder="Notes for the practice (equipment, focus, reminders)…" className="input sm:col-span-2" />
-            {plan.scheduleId && <p className="text-xs text-ink-500 sm:col-span-2">Changing the date or time moves only this practice (it then stops following the weekly schedule).</p>}
+            {plan.schedule && (
+              <fieldset className="rounded-lg border border-slate-200 p-3 sm:col-span-2">
+                <legend className="px-1 text-sm font-semibold">Apply the changes (name, day, time, length, place) to…</legend>
+                <label className="flex items-start gap-2 py-1 text-sm">
+                  <input type="radio" name="scope" value="one" defaultChecked className="mt-1 accent-brand-600" />
+                  <span><strong>Only this practice</strong> <span className="text-ink-500">— e.g. moved because of a holiday</span></span>
+                </label>
+                <label className="flex items-start gap-2 py-1 text-sm">
+                  <input type="radio" name="scope" value="series" className="mt-1 accent-brand-600" />
+                  <span>
+                    <strong>All upcoming {WEEKDAYS[plan.schedule.weekday]} practices</strong>{" "}
+                    <span className="text-ink-500">— the whole weekly series gets the new name, weekday and time. Drills already planned come along; past practices are kept.</span>
+                  </span>
+                </label>
+              </fieldset>
+            )}
             <div><SubmitButton>Save</SubmitButton></div>
           </ActionForm>
         </details>

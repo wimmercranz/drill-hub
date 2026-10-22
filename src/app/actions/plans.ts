@@ -6,8 +6,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { getMembership } from "@/lib/drills";
-import { practiceHasStarted, removeSchedule, syncSchedule } from "@/lib/schedule";
-import { wallClock } from "@/lib/time";
+import { isAutoTitle, practiceHasStarted, removeSchedule, seriesTitle, syncSchedule } from "@/lib/schedule";
+import { WEEKDAYS, toTimeInput, wallClock } from "@/lib/time";
 import type { FormState } from "./auth";
 
 async function requireCoach(teamId: string) {
@@ -31,6 +31,7 @@ const refresh = (plan: { id: string; teamId: string }) => {
 // ---------- Recurring schedule ----------
 
 const scheduleSchema = z.object({
+  title: z.string().trim().max(100).default(""),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Choose a start time."),
   durationMin: z.coerce.number().int().min(15, "Practice must be at least 15 minutes.").max(480),
   location: z.string().trim().max(100),
@@ -46,7 +47,9 @@ function parseSchedule(formData: FormData) {
   const endsOn = wallClock(d.endsOn);
   if (endsOn < startsOn) return { error: "The season must end after it starts." } as const;
   if (endsOn.getTime() - startsOn.getTime() > 400 * 86_400_000) return { error: "A season can be at most about a year long." } as const;
-  return { data: { startTime: d.startTime, durationMin: d.durationMin, location: d.location, startsOn, endsOn } } as const;
+  // Names like "Tuesday practice" are stored as "" so they keep following the weekday.
+  const title = isAutoTitle(d.title) ? "" : d.title;
+  return { data: { title, startTime: d.startTime, durationMin: d.durationMin, location: d.location, startsOn, endsOn } } as const;
 }
 
 export async function addSchedule(teamId: string, _: FormState, formData: FormData): Promise<FormState> {
@@ -73,7 +76,7 @@ export async function updateSchedule(scheduleId: string, _: FormState, formData:
     where: { id: scheduleId },
     data: { ...parsed.data, weekday: weekday >= 0 && weekday <= 6 ? weekday : schedule.weekday },
   });
-  await syncSchedule(scheduleId);
+  await syncSchedule(scheduleId, seriesTitle(schedule));
   revalidatePath(`/teams/${schedule.teamId}`);
   return { success: "Updated — all future practices have moved." };
 }
@@ -130,18 +133,51 @@ export async function updatePlanDetails(planId: string, _: FormState, formData: 
   const plan = await planForCoach(planId);
   const fields = practiceFields(formData);
   if ("error" in fields) return { error: fields.error };
+  const notes = String(formData.get("notes") ?? "").slice(0, 2000);
+
+  // "All upcoming practices in this series": change the weekly schedule itself.
+  if (formData.get("scope") === "series" && plan.scheduleId) {
+    const start = fields.data.startsAt;
+    if (!start) return { error: "Choose a date and time for the series." };
+    const old = await db.practiceSchedule.findUniqueOrThrow({ where: { id: plan.scheduleId } });
+    const renamed = fields.data.title !== plan.title;
+    const schedule = await db.practiceSchedule.update({
+      where: { id: old.id },
+      data: {
+        // A new name typed here becomes the name of the whole series.
+        title: renamed ? (isAutoTitle(fields.data.title) ? "" : fields.data.title) : old.title,
+        weekday: start.getUTCDay(),
+        startTime: toTimeInput(start),
+        durationMin: fields.data.durationMin ?? undefined,
+        location: fields.data.location,
+      },
+    });
+    await db.practicePlan.update({ where: { id: planId }, data: { notes, ...(renamed ? { title: seriesTitle(schedule) } : {}) } });
+    await syncSchedule(schedule.id, seriesTitle(old));
+    refresh(plan);
+    return {
+      success: `All upcoming practices in this series are now “${seriesTitle(schedule)}” on ${WEEKDAYS[schedule.weekday]}s at ${schedule.startTime}. Their drills came along.`,
+    };
+  }
+
   const moved = (fields.data.startsAt?.getTime() ?? null) !== (plan.startsAt?.getTime() ?? null);
+  // An automatic name follows the new weekday ("Tuesday practice" moved to Wednesday → "Wednesday practice").
+  const title =
+    moved && fields.data.startsAt && fields.data.title === plan.title && isAutoTitle(plan.title)
+      ? `${WEEKDAYS[fields.data.startsAt.getUTCDay()]} practice`
+      : fields.data.title;
   await db.practicePlan.update({
     where: { id: planId },
     data: {
       ...fields.data,
-      notes: String(formData.get("notes") ?? "").slice(0, 2000),
+      title,
+      notes,
       // A practice moved by hand no longer follows the recurring schedule.
       ...(moved ? { scheduleId: null } : {}),
     },
   });
   refresh(plan);
-  return { success: moved && plan.scheduleId ? "Saved. This practice was moved, so it no longer follows the weekly schedule." : "Saved." };
+  return { success: moved && plan.scheduleId ? "Saved. Only this practice was moved; the rest of the series is unchanged." : "Saved." };
 }
 
 export async function setCancelled(planId: string, cancelled: boolean) {

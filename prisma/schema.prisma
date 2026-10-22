@@ -170,6 +170,7 @@ model TeamInvite {
 // Times are "wall clock" times in the team's timezone.
 model PracticeSchedule {
   id          String   @id @default(cuid())
+  title       String   @default("") // name for the practices in this series; "" = "<Weekday> practice"
   weekday     Int // 0 = Sunday … 6 = Saturday
   startTime   String // "18:00"
   durationMin Int
