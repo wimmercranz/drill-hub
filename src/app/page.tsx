@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { drillCardInclude, usedCount } from "@/lib/drills";
+import { collectionState, drillCardInclude, usedCount } from "@/lib/drills";
+import { getCurrentUser } from "@/lib/auth";
 import DrillCard, { DrillGrid } from "@/components/DrillCard";
 
-export default async function Home() {
-  const [drills, sports, categories] = await Promise.all([
+export default async function Home({ searchParams }: { searchParams: Promise<{ deleted?: string }> }) {
+  const { deleted } = await searchParams;
+  const user = await getCurrentUser();
+  const [drills, sports, categories, state] = await Promise.all([
     db.drill.findMany({ where: { visibility: "PUBLIC" }, include: drillCardInclude }),
     db.sport.findMany({ orderBy: { name: "asc" } }),
     db.category.findMany({
@@ -12,6 +15,7 @@ export default async function Home() {
       orderBy: { order: "asc" },
       include: { _count: { select: { drills: { where: { visibility: "PUBLIC" } } } } },
     }),
+    collectionState(user?.id ?? null),
   ]);
   const popular = [...drills]
     .sort((a, b) => usedCount(b) - usedCount(a))
@@ -20,7 +24,10 @@ export default async function Home() {
 
   return (
     <>
-      <section className="relative overflow-hidden bg-ink-900 text-white">
+      {deleted && (
+        <p className="bg-emerald-50 py-3 text-center text-sm text-emerald-800">Your account and personal data have been deleted.</p>
+      )}
+      <section className="relative overflow-hidden bg-ink-900 text-white [contain:paint]">
         <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-brand-600/30 blur-3xl" />
         <div className="container-page relative py-16 sm:py-24">
           <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-brand-500">🏀 Basketball · more sports coming</p>
@@ -58,7 +65,7 @@ export default async function Home() {
           <Link href="/drills?sort=popular" className="text-sm font-semibold text-brand-700">See all →</Link>
         </div>
         <DrillGrid>
-          {popular.map((d) => <DrillCard key={d.id} drill={d} />)}
+          {popular.map((d) => <DrillCard key={d.id} drill={d} state={state} />)}
         </DrillGrid>
       </section>
 
@@ -81,7 +88,7 @@ export default async function Home() {
       <section className="container-page py-10">
         <h2 className="mb-4 text-xl font-bold">Recently added</h2>
         <DrillGrid>
-          {newest.map((d) => <DrillCard key={d.id} drill={d} />)}
+          {newest.map((d) => <DrillCard key={d.id} drill={d} state={state} />)}
         </DrillGrid>
       </section>
 

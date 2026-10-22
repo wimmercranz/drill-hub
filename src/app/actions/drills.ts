@@ -89,7 +89,7 @@ export async function createDrill(_: FormState, formData: FormData): Promise<For
     },
   });
   // Authors automatically collect their own drills.
-  await db.personalSave.create({ data: { userId: user.id, drillId: drill.id } });
+  await db.personalSave.create({ data: { userId: user.id, drillId: drill.id, position: -Date.now() % 1_000_000_000 } });
   redirect(`/drills/${drill.slug}`);
 }
 
@@ -145,8 +145,21 @@ export async function toggleSave(drillId: string, slug: string) {
   if (await db.personalSave.findUnique({ where })) {
     await db.personalSave.delete({ where });
   } else {
-    await db.personalSave.create({ data: { userId: user.id, drillId } });
+    // New saves land at the top of the "Unsorted" column.
+    await db.personalSave.create({ data: { userId: user.id, drillId, position: -Date.now() % 1_000_000_000 } });
   }
+  revalidatePath("/", "layout");
+}
+
+/** Move a saved drill to one of the user's boards (or back to Unsorted with an empty value). */
+export async function moveSaveToBoard(drillId: string, formData: FormData) {
+  const user = await requireUser();
+  const boardId = String(formData.get("boardId") ?? "") || null;
+  if (boardId && !(await db.board.findFirst({ where: { id: boardId, userId: user.id } }))) return;
+  await db.personalSave.update({
+    where: { userId_drillId: { userId: user.id, drillId } },
+    data: { boardId, position: -Date.now() % 1_000_000_000 },
+  });
   revalidatePath("/", "layout");
 }
 

@@ -1,13 +1,12 @@
 // Drill Hub database schema.
-// Locally this uses a SQLite file (prisma/dev.db). For production we will
-// switch the provider to "postgresql" and point DATABASE_URL at a hosted DB.
+// PostgreSQL database. DATABASE_URL in .env points at it (see README).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -15,21 +14,54 @@ model User {
   id           String   @id @default(cuid())
   name         String
   email        String   @unique
-  passwordHash String
+  passwordHash String? // null for accounts that only use Google sign-in
+  googleId     String?  @unique
   createdAt    DateTime @default(now())
+
+  // Consent (GDPR): when the user accepted the terms/privacy policy, and which version
+  termsAcceptedAt DateTime?
+  termsVersion    String?
 
   // Profile
   username          String? @unique // used in the profile URL: /u/<username>
   bio               String  @default("")
   profileVisibility String  @default("PRIVATE") // PUBLIC | PRIVATE
+  avatar            String? // small JPEG as a data URL (resized in the browser to 256px)
+  avatarUpdatedAt   DateTime? // null = no picture; also used to bust the browser cache
 
   sessions      Session[]
   memberships   Membership[]
-  drills        Drill[]         @relation("DrillAuthor")
+  drills        Drill[]              @relation("DrillAuthor")
   saves         PersonalSave[]
   teamDrillsAdd TeamDrill[]
   plans         PracticePlan[]
   clubs         ClubMember[]
+  boards        Board[]
+  ratings       PracticeRating[]
+  invitesSent   TeamInvite[]
+  resetTokens   PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id // sha256 hash of the token sent by e-mail
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// A column on a user's personal drill board, e.g. "Warm-ups" or "Summer program".
+model Board {
+  id        String   @id @default(cuid())
+  title     String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  userId    String
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  saves PersonalSave[]
 }
 
 model Session {
@@ -92,9 +124,9 @@ model Drill {
   authorId String?
   teamId   String? // owning team when visibility is TEAM
 
-  sport      Sport          @relation(fields: [sportId], references: [id])
-  author     User?          @relation("DrillAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-  team       Team?          @relation("TeamOwnedDrills", fields: [teamId], references: [id], onDelete: Cascade)
+  sport      Sport              @relation(fields: [sportId], references: [id])
+  author     User?              @relation("DrillAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  team       Team?              @relation("TeamOwnedDrills", fields: [teamId], references: [id], onDelete: Cascade)
   categories Category[]
   saves      PersonalSave[]
   teamDrills TeamDrill[]
@@ -105,20 +137,57 @@ model Team {
   id         String   @id @default(cuid())
   name       String
   inviteCode String   @unique
+  timezone   String   @default("Europe/Stockholm")
   createdAt  DateTime @default(now())
   sportId    String
 
-  sport       Sport          @relation(fields: [sportId], references: [id])
+  sport       Sport              @relation(fields: [sportId], references: [id])
   memberships Membership[]
   drills      TeamDrill[]
-  ownedDrills Drill[]        @relation("TeamOwnedDrills")
+  ownedDrills Drill[]            @relation("TeamOwnedDrills")
   plans       PracticePlan[]
+  schedules   PracticeSchedule[]
+  invites     TeamInvite[]
+}
+
+// An e-mail invitation to join a team as a player or coach.
+model TeamInvite {
+  id          String    @id @default(cuid())
+  token       String    @unique
+  email       String
+  role        String    @default("PLAYER") // PLAYER | COACH
+  title       String    @default("") // e.g. "Assistant coach"
+  createdAt   DateTime  @default(now())
+  acceptedAt  DateTime?
+  teamId      String
+  invitedById String?
+
+  team      Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedBy User? @relation(fields: [invitedById], references: [id], onDelete: SetNull)
+}
+
+// A recurring practice time, e.g. every Tuesday 18:00 for 90 minutes.
+// Times are "wall clock" times in the team's timezone.
+model PracticeSchedule {
+  id          String   @id @default(cuid())
+  weekday     Int // 0 = Sunday … 6 = Saturday
+  startTime   String // "18:00"
+  durationMin Int
+  location    String   @default("")
+  startsOn    DateTime // first day of the season
+  endsOn      DateTime // last day of the season
+  createdAt   DateTime @default(now())
+  teamId      String
+
+  team  Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  plans PracticePlan[]
 }
 
 // A user's role is per team: the same person can coach one team and play on another.
 model Membership {
   id        String   @id @default(cuid())
-  role      String   @default("PLAYER") // PLAYER | COACH
+  role      String   @default("PLAYER") // PLAYER | COACH (all coaches have the same rights)
+  title     String   @default("") // shown label, e.g. "Head coach", "Assistant coach"
   createdAt DateTime @default(now())
   userId    String
   teamId    String
@@ -129,15 +198,18 @@ model Membership {
   @@unique([userId, teamId])
 }
 
-// A drill a user "collected" to their personal page.
+// A drill a user "collected" to their personal board.
 model PersonalSave {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
+  position  Int      @default(0) // order within its board column
   userId    String
   drillId   String
+  boardId   String? // null = "Unsorted" column
 
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  drill Drill @relation(fields: [drillId], references: [id], onDelete: Cascade)
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drill Drill  @relation(fields: [drillId], references: [id], onDelete: Cascade)
+  board Board? @relation(fields: [boardId], references: [id], onDelete: SetNull)
 
   @@unique([userId, drillId])
 }
@@ -158,18 +230,40 @@ model TeamDrill {
   @@unique([teamId, drillId])
 }
 
+// One practice (session) and its drill plan.
 model PracticePlan {
-  id        String    @id @default(cuid())
-  title     String
-  date      DateTime?
-  notes     String    @default("")
-  createdAt DateTime  @default(now())
-  teamId    String
-  authorId  String?
+  id          String    @id @default(cuid())
+  title       String
+  startsAt    DateTime? // wall-clock time in the team's timezone, stored as UTC fields
+  durationMin Int? // time available for the practice
+  location    String    @default("")
+  cancelled   Boolean   @default(false)
+  notes       String    @default("")
+  createdAt   DateTime  @default(now())
+  teamId      String
+  authorId    String?
+  scheduleId  String? // set when generated from a recurring schedule
 
-  team   Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  author User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  items  PracticePlanItem[]
+  team     Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  author   User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  schedule PracticeSchedule?  @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  items    PracticePlanItem[]
+  ratings  PracticeRating[]
+}
+
+// Anonymous 1–4 rating of a practice. userId is only stored to allow one vote
+// per person; it is never shown to anyone.
+model PracticeRating {
+  id        String   @id @default(cuid())
+  rating    Int
+  createdAt DateTime @default(now())
+  planId    String
+  userId    String
+
+  plan PracticePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, userId])
 }
 
 model PracticePlanItem {

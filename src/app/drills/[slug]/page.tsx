@@ -3,10 +3,10 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { coachedTeams, drillCardInclude, levelLabel, lines, usedCount, visibleTo } from "@/lib/drills";
+import { coachedTeams, collectionState, drillCardInclude, levelLabel, lines, usedCount, visibleTo } from "@/lib/drills";
 import { embedUrl } from "@/lib/video";
 import { profileHref } from "@/lib/profiles";
-import { deleteDrill, toggleSave, toggleTeamDrill } from "@/app/actions/drills";
+import { deleteDrill, moveSaveToBoard, toggleSave, toggleTeamDrill } from "@/app/actions/drills";
 import DrillCard from "@/components/DrillCard";
 import SubmitButton from "@/components/SubmitButton";
 
@@ -44,7 +44,7 @@ export default async function DrillPage({ params }: Props) {
   const drill = await loadDrill(slug, user?.id ?? null);
   if (!drill) notFound();
 
-  const [saved, teams, teamLinks, related] = await Promise.all([
+  const [saved, teams, teamLinks, related, state, boards] = await Promise.all([
     user ? db.personalSave.findUnique({ where: { userId_drillId: { userId: user.id, drillId: drill.id } } }) : null,
     user ? coachedTeams(user.id) : [],
     user ? db.teamDrill.findMany({ where: { drillId: drill.id, team: { memberships: { some: { userId: user.id } } } } }) : [],
@@ -59,6 +59,8 @@ export default async function DrillPage({ params }: Props) {
       include: drillCardInclude,
       take: 3,
     }),
+    collectionState(user?.id ?? null),
+    user ? db.board.findMany({ where: { userId: user.id }, orderBy: { order: "asc" } }) : [],
   ]);
 
   const embed = embedUrl(drill.videoUrl);
@@ -171,6 +173,15 @@ export default async function DrillPage({ params }: Props) {
                     {saved ? "✓ In My Drills (remove)" : "★ Save to My Drills"}
                   </SubmitButton>
                 </form>
+                {saved && boards.length > 0 && (
+                  <form action={moveSaveToBoard.bind(null, drill.id)} className="flex gap-1">
+                    <select name="boardId" defaultValue={saved.boardId ?? ""} className="input py-1.5" aria-label="Board">
+                      <option value="">Board: Unsorted</option>
+                      {boards.map((b) => <option key={b.id} value={b.id}>Board: {b.title}</option>)}
+                    </select>
+                    <SubmitButton className="btn-secondary btn-sm" pendingText="…">Move</SubmitButton>
+                  </form>
+                )}
                 {teams.map((t) => {
                   const inTeam = teamLinks.some((l) => l.teamId === t.id);
                   return (
@@ -214,7 +225,7 @@ export default async function DrillPage({ params }: Props) {
         <section className="mt-14">
           <h2 className="mb-4 text-xl font-bold">Related drills</h2>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {related.map((d) => <DrillCard key={d.id} drill={d} />)}
+            {related.map((d) => <DrillCard key={d.id} drill={d} state={state} />)}
           </div>
         </section>
       )}

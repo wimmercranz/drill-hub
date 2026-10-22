@@ -36,7 +36,7 @@ export const getCurrentUser = cache(async () => {
   if (!token) return null;
   const session = await db.session.findUnique({
     where: { id: hash(token) },
-    include: { user: { select: { id: true, name: true, email: true, username: true } } },
+    include: { user: { select: { id: true, name: true, email: true, username: true, avatarUpdatedAt: true, termsAcceptedAt: true } } },
   });
   if (!session || session.expiresAt < new Date()) return null;
   return session.user;
@@ -45,5 +45,12 @@ export const getCurrentUser = cache(async () => {
 export async function requireUser(next?: string) {
   const user = await getCurrentUser();
   if (!user) redirect(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
+  // Accounts created with Google must accept the terms before using the site.
+  if (!user.termsAcceptedAt) redirect(next ? `/welcome?next=${encodeURIComponent(next)}` : "/welcome");
   return user;
+}
+
+/** Log out everywhere, e.g. after a password change. */
+export async function destroyAllSessions(userId: string) {
+  await db.session.deleteMany({ where: { userId } });
 }

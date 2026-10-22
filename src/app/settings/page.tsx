@@ -2,7 +2,10 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { profileHref } from "@/lib/profiles";
-import { removeClubMember, updateProfile } from "@/app/actions/profile";
+import { deleteAccount, removeClubMember, updateProfile } from "@/app/actions/profile";
+import { logout } from "@/app/actions/auth";
+import Avatar from "@/components/Avatar";
+import AvatarUpload from "@/components/AvatarUpload";
 import ActionForm from "@/components/ActionForm";
 import SubmitButton from "@/components/SubmitButton";
 
@@ -19,7 +22,20 @@ export default async function SettingsPage() {
     <div className="container-page max-w-2xl py-8">
       <div className="mb-6 flex items-end justify-between">
         <h1 className="text-3xl font-extrabold tracking-tight">Profile settings</h1>
-        <Link href={profileHref(user)} className="text-sm font-semibold text-brand-700">View my profile →</Link>
+        <div className="flex items-center gap-3">
+          <Link href={profileHref(user)} className="text-sm font-semibold text-brand-700">View my profile →</Link>
+          <form action={logout}>
+            <button className="btn-secondary btn-sm">Log out</button>
+          </form>
+        </div>
+      </div>
+
+      <div className="card mb-6 flex items-center gap-4 p-5">
+        <Avatar user={user} size="lg" />
+        <div>
+          <p className="mb-2 font-bold">Profile picture</p>
+          <AvatarUpload hasAvatar={!!user.avatarUpdatedAt} />
+        </div>
       </div>
 
       <ActionForm action={updateProfile} className="card space-y-4 p-5">
@@ -80,6 +96,27 @@ export default async function SettingsPage() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="card mt-6 p-5">
+        <h2 className="font-bold">Your data</h2>
+        <p className="mt-1 text-sm text-ink-500">
+          Read how we handle your data in the <Link href="/privacy" className="font-semibold text-brand-700">privacy policy</Link>.
+          {user.termsAcceptedAt && ` You accepted the terms on ${user.termsAcceptedAt.toLocaleDateString("en-GB")}.`}
+        </p>
+        <a href="/api/me/export" className="btn-secondary mt-3">⬇ Download my data</a>
+
+        <details className="mt-6 rounded-lg border border-red-200 p-4">
+          <summary className="cursor-pointer font-semibold text-red-700">Delete my account</summary>
+          <p className="mt-2 text-sm text-ink-700">
+            This permanently deletes your account, profile, boards, ratings and private drills. Public drills you created stay in the
+            library without your name. This can&apos;t be undone.
+          </p>
+          <ActionForm action={deleteAccount} className="mt-3 flex flex-wrap gap-2">
+            <input name="confirm" placeholder="Type DELETE" className="input max-w-40" autoComplete="off" />
+            <SubmitButton className="btn bg-red-600 text-white hover:bg-red-700" pendingText="Deleting…">Delete account</SubmitButton>
+          </ActionForm>
+        </details>
       </section>
     </div>
   );

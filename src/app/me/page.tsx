@@ -2,65 +2,73 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { drillCardInclude, visibleTo } from "@/lib/drills";
-import { toggleSave } from "@/app/actions/drills";
+import { profileHref } from "@/lib/profiles";
+import { thumbnailUrl } from "@/lib/video";
+import DrillBoard, { type BoardCard, type BoardColumn } from "@/components/DrillBoard";
 import DrillCard, { DrillGrid } from "@/components/DrillCard";
-import SubmitButton from "@/components/SubmitButton";
 
 export const metadata = { title: "My Drills" };
 
 export default async function MePage() {
   const user = await requireUser("/me");
-  const [saves, created, memberships] = await Promise.all([
+  const [boards, saves, created, memberships] = await Promise.all([
+    db.board.findMany({ where: { userId: user.id }, orderBy: { order: "asc" } }),
     db.personalSave.findMany({
       where: { userId: user.id, drill: visibleTo(user.id) },
-      include: { drill: { include: drillCardInclude } },
-      orderBy: { createdAt: "desc" },
+      include: { drill: { select: { id: true, slug: true, title: true, videoUrl: true, durationMin: true, level: true } } },
+      orderBy: [{ position: "asc" }, { createdAt: "desc" }],
     }),
     db.drill.findMany({ where: { authorId: user.id }, include: drillCardInclude, orderBy: { createdAt: "desc" } }),
     db.membership.findMany({ where: { userId: user.id }, include: { team: { include: { sport: true } } } }),
   ]);
 
+  const toCard = (s: (typeof saves)[number]): BoardCard => ({
+    saveId: s.id,
+    drillId: s.drill.id,
+    slug: s.drill.slug,
+    title: s.drill.title,
+    thumbnail: thumbnailUrl(s.drill.videoUrl),
+    durationMin: s.drill.durationMin,
+    level: s.drill.level,
+  });
+  const columns: BoardColumn[] = [
+    { id: null, title: "Unsorted", cards: saves.filter((s) => !s.boardId).map(toCard) },
+    ...boards.map((b) => ({ id: b.id, title: b.title, cards: saves.filter((s) => s.boardId === b.id).map(toCard) })),
+  ];
+
   return (
     <div className="container-page py-8">
-      <h1 className="text-3xl font-extrabold tracking-tight">Hi {user.name.split(" ")[0]} 👋</h1>
-      <p className="text-ink-500">
-        Your personal drill collection ·{" "}
-        <Link href="/settings" className="font-semibold text-brand-700">Profile & clubs settings</Link>
-      </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight">My Drills</h1>
+          <p className="text-ink-500">
+            {saves.length} saved drill{saves.length === 1 ? "" : "s"} · drag them between boards to organise ·{" "}
+            <Link href={profileHref(user)} className="font-semibold text-brand-700">My profile</Link>
+          </p>
+        </div>
+        <Link href="/drills" className="btn-primary">+ Find drills</Link>
+      </div>
 
       {memberships.length > 0 && (
-        <div className="mt-6 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           {memberships.map((m) => (
-            <Link key={m.id} href={`/teams/${m.teamId}`} className="card flex items-center gap-2 px-4 py-2 text-sm hover:border-brand-500">
+            <Link key={m.id} href={`/teams/${m.teamId}`} className="card flex items-center gap-2 px-3 py-1.5 text-sm hover:border-brand-500">
               <span>{m.team.sport.emoji}</span>
               <span className="font-semibold">{m.team.name}</span>
-              <span className="chip">{m.role === "COACH" ? "Coach" : "Player"}</span>
+              <span className="chip">{m.title || (m.role === "COACH" ? "Coach" : "Player")}</span>
             </Link>
           ))}
         </div>
       )}
 
-      <section className="mt-10">
-        <h2 className="mb-4 text-xl font-bold">My Drills <span className="text-ink-500">({saves.length})</span></h2>
-        {saves.length === 0 ? (
+      <section className="mt-6">
+        {saves.length === 0 && boards.length === 0 ? (
           <div className="card p-8 text-center text-ink-500">
             You haven&apos;t collected any drills yet. <Link href="/drills" className="font-semibold text-brand-700">Browse the library →</Link>
+            <p className="mt-2 text-sm">Tip: create boards like “Warm-ups” or “Summer program” and drag drills into them.</p>
           </div>
-        ) : (
-          <DrillGrid>
-            {saves.map((s) => (
-              <DrillCard
-                key={s.id}
-                drill={s.drill}
-                footer={
-                  <form action={toggleSave.bind(null, s.drill.id, s.drill.slug)}>
-                    <SubmitButton className="btn-ghost btn-sm text-ink-500" pendingText="…">Remove</SubmitButton>
-                  </form>
-                }
-              />
-            ))}
-          </DrillGrid>
-        )}
+        ) : null}
+        <DrillBoard columns={columns} />
       </section>
 
       <section className="mt-12">

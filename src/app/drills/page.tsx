@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { LEVELS, drillCardInclude, usedCount, visibleTo } from "@/lib/drills";
+import { LEVELS, collectionState, drillCardInclude, usedCount, visibleTo } from "@/lib/drills";
 import DrillCard, { DrillGrid } from "@/components/DrillCard";
 
 export const metadata = { title: "Drills" };
@@ -24,9 +24,10 @@ export default async function DrillsPage({ searchParams }: { searchParams: Promi
   if (video === "yes") filters.push({ videoUrl: { not: null } });
   if (video === "no") filters.push({ videoUrl: null });
 
-  const [drills, categories] = await Promise.all([
+  const [drills, categories, state] = await Promise.all([
     db.drill.findMany({ where: { AND: filters }, include: drillCardInclude }),
     db.category.findMany({ where: { sport: { slug: "basketball" } }, orderBy: { order: "asc" } }),
+    collectionState(user?.id ?? null),
   ]);
 
   drills.sort((a, b) =>
@@ -82,7 +83,7 @@ export default async function DrillsPage({ searchParams }: { searchParams: Promi
         </div>
       ) : (
         <DrillGrid>
-          {drills.map((d) => <DrillCard key={d.id} drill={d} />)}
+          {drills.map((d) => <DrillCard key={d.id} drill={d} state={state} />)}
         </DrillGrid>
       )}
     </div>

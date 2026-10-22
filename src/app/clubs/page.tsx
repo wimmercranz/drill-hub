@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { createClub } from "@/app/actions/profile";
-import ActionForm from "@/components/ActionForm";
-import SubmitButton from "@/components/SubmitButton";
+import ClubCreateForm from "@/components/ClubCreateForm";
 
 export const metadata = { title: "Clubs" };
 
@@ -45,11 +43,7 @@ export default async function ClubsPage({ searchParams }: { searchParams: Promis
         {user ? (
           <>
             <p className="mb-4 text-sm text-ink-500">Create it — you&apos;ll become the club admin.</p>
-            <ActionForm action={createClub} className="space-y-3">
-              <input name="name" required placeholder="Club name" className="input" />
-              <input name="city" placeholder="City (optional)" className="input" />
-              <SubmitButton pendingText="Creating…">Create club</SubmitButton>
-            </ActionForm>
+            <ClubCreateForm />
           </>
         ) : (
           <p className="mt-2 text-sm text-ink-500"><Link href="/login?next=/clubs" className="font-semibold text-brand-700">Log in</Link> to create a club.</p>

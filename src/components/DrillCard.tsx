@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { DrillCardData } from "@/lib/drills";
+import type { CollectionState, DrillCardData } from "@/lib/drills";
 import { levelLabel, usedCount } from "@/lib/drills";
 import { thumbnailUrl } from "@/lib/video";
 
@@ -9,7 +9,18 @@ const levelColor: Record<string, string> = {
   ADVANCED: "bg-rose-100 text-rose-800",
 };
 
-export default function DrillCard({ drill, footer }: { drill: DrillCardData; footer?: React.ReactNode }) {
+export default function DrillCard({
+  drill,
+  footer,
+  state,
+}: {
+  drill: DrillCardData;
+  footer?: React.ReactNode;
+  /** Pass the viewer's collection state to show "Saved" / "In team" badges. */
+  state?: CollectionState;
+}) {
+  const saved = state?.saved.has(drill.id);
+  const teams = state?.inTeams.get(drill.id) ?? [];
   const thumb = thumbnailUrl(drill.videoUrl);
   const used = usedCount(drill);
   return (
@@ -26,6 +37,14 @@ export default function DrillCard({ drill, footer }: { drill: DrillCardData; foo
             <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold text-white">
               ▶ Video
             </span>
+          )}
+          {(saved || teams.length > 0) && (
+            <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
+              {saved && <span className="rounded bg-emerald-600 px-1.5 py-0.5 text-[11px] font-semibold text-white shadow">✓ Saved</span>}
+              {teams.map((t) => (
+                <span key={t} className="max-w-40 truncate rounded bg-ink-900/85 px-1.5 py-0.5 text-[11px] font-semibold text-white shadow">In {t}</span>
+              ))}
+            </div>
           )}
           {drill.visibility !== "PUBLIC" && (
             <span className="absolute left-2 top-2 rounded bg-ink-900/80 px-1.5 py-0.5 text-[11px] font-semibold text-white">

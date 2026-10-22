@@ -23,9 +23,9 @@ export default async function Header() {
             <>
               <Link href="/drills/new" className="btn-primary hidden sm:inline-flex">+ New drill</Link>
               <Link href={profileHref(user)} title="My profile" className="flex items-center gap-2 rounded-full hover:opacity-80">
-                <Avatar name={user.name} size="sm" />
+                <Avatar user={user} size="sm" />
               </Link>
-              <form action={logout}>
+              <form action={logout} className="hidden sm:block">
                 <button className="btn-ghost">Log out</button>
               </form>
             </>

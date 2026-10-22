@@ -3,11 +3,18 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { getMembership, levelLabel } from "@/lib/drills";
-import { addPlanItem, deletePlan, movePlanItem, removePlanItem, updatePlanDetails, updatePlanItem } from "@/app/actions/plans";
+import { practiceHasStarted } from "@/lib/schedule";
+import { WEEKDAYS, addMinutes, formatDate, formatTime, toDateInput, toTimeInput } from "@/lib/time";
+import { addPlanItem, copyPlanItems, deletePlan, setCancelled, updatePlanDetails } from "@/app/actions/plans";
+import ActionForm from "@/components/ActionForm";
+import PlanItems from "@/components/PlanItems";
 import PrintButton from "@/components/PrintButton";
+import RatePractice from "@/components/RatePractice";
+import RatingSummary from "@/components/RatingSummary";
 import SubmitButton from "@/components/SubmitButton";
+import TimeBar from "@/components/TimeBar";
 
-export const metadata = { title: "Practice plan" };
+export const metadata = { title: "Practice" };
 
 export default async function PlanPage({ params }: { params: Promise<{ id: string; planId: string }> }) {
   const { id, planId } = await params;
@@ -16,142 +23,186 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const plan = await db.practicePlan.findUnique({
     where: { id: planId },
     include: {
-      team: true,
+      team: { include: { _count: { select: { memberships: true } } } },
       author: { select: { name: true } },
+      schedule: true,
       items: { include: { drill: true }, orderBy: { order: "asc" } },
+      ratings: { select: { rating: true, userId: true } },
     },
   });
   if (!membership || !plan || plan.teamId !== id) notFound();
   const isCoach = membership.role === "COACH";
+  const started = practiceHasStarted(plan, plan.team.timezone);
 
-  // Drills a coach can add: the team library plus the coach's own collection.
-  const choices = isCoach
-    ? await db.drill.findMany({
-        where: { OR: [{ teamDrills: { some: { teamId: id } } }, { saves: { some: { userId: user.id } } }] },
-        orderBy: { title: "asc" },
-        include: { teamDrills: { where: { teamId: id } } },
-      })
-    : [];
+  // Drills a coach can add: the team library plus the coach's own board.
+  const [choices, otherPlans] = isCoach
+    ? await Promise.all([
+        db.drill.findMany({
+          where: { OR: [{ teamDrills: { some: { teamId: id } } }, { saves: { some: { userId: user.id } } }] },
+          orderBy: { title: "asc" },
+          include: { teamDrills: { where: { teamId: id } } },
+        }),
+        db.practicePlan.findMany({
+          where: { teamId: id, id: { not: plan.id }, items: { some: {} } },
+          orderBy: [{ startsAt: "desc" }, { createdAt: "desc" }],
+          take: 20,
+          include: { _count: { select: { items: true } } },
+        }),
+      ])
+    : [[], []];
   const teamChoices = choices.filter((d) => d.teamDrills.length > 0);
   const myChoices = choices.filter((d) => d.teamDrills.length === 0);
 
-  const total = plan.items.reduce((sum, i) => sum + i.durationMin, 0);
-  let clock = 0;
-  const dateValue = plan.date ? plan.date.toISOString().slice(0, 10) : "";
+  const planned = plan.items.reduce((sum, i) => sum + i.durationMin, 0);
+  const myRating = plan.ratings.find((r) => r.userId === user.id)?.rating ?? null;
 
   return (
     <div className="container-page max-w-4xl py-8">
       <nav className="no-print mb-4 text-sm text-ink-500">
-        <Link href={`/teams/${id}`} className="hover:text-brand-700">{plan.team.name}</Link> / Practice plan
+        <Link href={`/teams/${id}`} className="hover:text-brand-700">{plan.team.name}</Link> / Practice
       </nav>
+
+      {plan.cancelled && (
+        <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 font-semibold text-red-700">This practice is cancelled.</p>
+      )}
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase text-ink-500">
-            {plan.date ? plan.date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }) : "No date set"}
+            {plan.startsAt ? (
+              <>
+                {formatDate(plan.startsAt, "long")} · {formatTime(plan.startsAt)}
+                {plan.durationMin && `–${formatTime(addMinutes(plan.startsAt, plan.durationMin))}`}
+              </>
+            ) : (
+              "No date set"
+            )}
           </p>
           <h1 className="text-3xl font-extrabold tracking-tight">{plan.title}</h1>
           <p className="text-ink-500">
-            {plan.team.name} · {plan.items.length} drills · <strong className="text-ink-900">{total} minutes</strong>
-            {plan.author && ` · by ${plan.author.name}`}
+            {plan.team.name}
+            {plan.location && ` · 📍 ${plan.location}`}
+            {plan.schedule && ` · every ${WEEKDAYS[plan.schedule.weekday]}`}
           </p>
         </div>
-        <div className="no-print flex gap-2">
+        <div className="no-print flex flex-wrap gap-2">
           <PrintButton />
           {isCoach && (
-            <form action={deletePlan.bind(null, plan.id)}>
-              <SubmitButton className="btn-ghost text-red-600" pendingText="…" confirm="Delete this practice plan?">Delete</SubmitButton>
-            </form>
+            <>
+              <form action={setCancelled.bind(null, plan.id, !plan.cancelled)}>
+                <SubmitButton className="btn-secondary" pendingText="…" confirm={plan.cancelled ? undefined : "Cancel this practice? You can restore it later."}>
+                  {plan.cancelled ? "Restore practice" : "Cancel practice"}
+                </SubmitButton>
+              </form>
+              <form action={deletePlan.bind(null, plan.id)}>
+                <SubmitButton className="btn-ghost text-red-600" pendingText="…" confirm="Delete this practice and its plan?">Delete</SubmitButton>
+              </form>
+            </>
           )}
         </div>
       </div>
 
-      {plan.notes && !isCoach && <p className="card mt-4 whitespace-pre-line p-4 text-sm text-ink-700">{plan.notes}</p>}
-
       {isCoach && (
         <details className="no-print card mt-4 p-4">
-          <summary className="cursor-pointer font-semibold">Edit title, date & notes</summary>
-          <form action={updatePlanDetails.bind(null, plan.id)} className="mt-3 grid gap-3 sm:grid-cols-2">
-            <input name="title" defaultValue={plan.title} className="input" />
-            <input name="date" type="date" defaultValue={dateValue} className="input" />
+          <summary className="cursor-pointer font-semibold">Edit time, place & notes</summary>
+          <ActionForm action={updatePlanDetails.bind(null, plan.id)} className="mt-3 grid gap-3 sm:grid-cols-2">
+            <input name="title" defaultValue={plan.title} className="input sm:col-span-2" />
+            <label className="text-xs text-ink-500">Date<input name="date" type="date" defaultValue={toDateInput(plan.startsAt)} className="input" /></label>
+            <label className="text-xs text-ink-500">Start<input name="time" type="time" defaultValue={toTimeInput(plan.startsAt)} className="input" /></label>
+            <label className="text-xs text-ink-500">Available time (min)<input name="durationMin" type="number" min={15} max={480} defaultValue={plan.durationMin ?? ""} className="input" /></label>
+            <label className="text-xs text-ink-500">Location<input name="location" defaultValue={plan.location} className="input" /></label>
             <textarea name="notes" defaultValue={plan.notes} rows={3} placeholder="Notes for the practice (equipment, focus, reminders)…" className="input sm:col-span-2" />
-            <div><SubmitButton>Save details</SubmitButton></div>
-          </form>
+            {plan.scheduleId && <p className="text-xs text-ink-500 sm:col-span-2">Changing the date or time moves only this practice (it then stops following the weekly schedule).</p>}
+            <div><SubmitButton>Save</SubmitButton></div>
+          </ActionForm>
         </details>
       )}
-      {isCoach && plan.notes && <p className="mt-4 hidden whitespace-pre-line text-sm print:block">{plan.notes}</p>}
 
-      <ol className="mt-6 space-y-3">
-        {plan.items.map((item, i) => {
-          const start = clock;
-          clock += item.durationMin;
-          return (
-            <li key={item.id} className="card flex gap-4 p-4">
-              <div className="w-16 shrink-0 text-center">
-                <div className="text-xs text-ink-500">{start}–{clock} min</div>
-                <div className="mt-1 text-2xl font-extrabold text-brand-600">{i + 1}</div>
-              </div>
-              <div className="min-w-0 flex-1">
-                <Link href={`/drills/${item.drill.slug}`} className="font-bold hover:text-brand-700">{item.drill.title}</Link>
-                <p className="text-sm text-ink-500">{item.drill.summary}</p>
-                <p className="mt-1 text-xs text-ink-500">{levelLabel(item.drill.level)} · {item.drill.minPlayers}+ players{item.drill.equipment && ` · ${item.drill.equipment}`}</p>
-                {isCoach ? (
-                  <form action={updatePlanItem.bind(null, item.id)} className="no-print mt-3 flex flex-wrap items-center gap-2">
-                    <label className="flex items-center gap-1 text-sm">
-                      <input name="durationMin" type="number" min={1} max={180} defaultValue={item.durationMin} className="input w-20 py-1" /> min
-                    </label>
-                    <input name="note" defaultValue={item.note} placeholder="Note (focus, groups…)" className="input min-w-40 flex-1 py-1" />
-                    <SubmitButton className="btn-secondary btn-sm" pendingText="…">Save</SubmitButton>
-                  </form>
-                ) : (
-                  <p className="mt-2 text-sm"><strong>{item.durationMin} min</strong>{item.note && ` · ${item.note}`}</p>
-                )}
-                {isCoach && <p className="mt-2 hidden text-sm print:block"><strong>{item.durationMin} min</strong>{item.note && ` · ${item.note}`}</p>}
-              </div>
-              {isCoach && (
-                <div className="no-print flex shrink-0 flex-col gap-1">
-                  <form action={movePlanItem.bind(null, item.id, "up")}>
-                    <SubmitButton className="btn-ghost btn-sm" pendingText="…">↑</SubmitButton>
-                  </form>
-                  <form action={movePlanItem.bind(null, item.id, "down")}>
-                    <SubmitButton className="btn-ghost btn-sm" pendingText="…">↓</SubmitButton>
-                  </form>
-                  <form action={removePlanItem.bind(null, item.id)}>
-                    <SubmitButton className="btn-ghost btn-sm text-red-600" pendingText="…">✕</SubmitButton>
-                  </form>
-                </div>
-              )}
-            </li>
-          );
-        })}
-        {plan.items.length === 0 && <li className="card p-8 text-center text-ink-500">No drills in this plan yet.</li>}
-      </ol>
+      {plan.notes && <p className="card mt-4 whitespace-pre-line p-4 text-sm text-ink-700">📝 {plan.notes}</p>}
+
+      <div className="mt-6">
+        <TimeBar planned={planned} available={plan.durationMin} />
+      </div>
+
+      <div className="mt-4">
+        <PlanItems
+          planId={plan.id}
+          editable={isCoach}
+          startTime={plan.startsAt ? formatTime(plan.startsAt) : null}
+          items={plan.items.map((i) => ({
+            id: i.id,
+            durationMin: i.durationMin,
+            note: i.note,
+            drill: {
+              slug: i.drill.slug,
+              title: i.drill.title,
+              summary: i.drill.summary,
+              meta: `${levelLabel(i.drill.level)} · ${i.drill.minPlayers}+ players · suggested ${i.drill.durationMin} min${i.drill.equipment ? ` · ${i.drill.equipment}` : ""}`,
+            },
+          }))}
+        />
+      </div>
 
       {isCoach && (
-        <div className="no-print card mt-6 p-4">
-          <p className="mb-2 font-semibold">Add a drill</p>
-          {choices.length === 0 ? (
-            <p className="text-sm text-ink-500">
-              Add drills to your team library first. <Link href="/drills" className="font-semibold text-brand-700">Browse drills →</Link>
-            </p>
-          ) : (
-            <form action={addPlanItem.bind(null, plan.id)} className="flex flex-wrap gap-2">
-              <select name="drillId" className="input min-w-60 flex-1">
-                {teamChoices.length > 0 && (
-                  <optgroup label="Team library">
-                    {teamChoices.map((d) => <option key={d.id} value={d.id}>{d.title} ({d.durationMin} min)</option>)}
-                  </optgroup>
-                )}
-                {myChoices.length > 0 && (
-                  <optgroup label="My Drills">
-                    {myChoices.map((d) => <option key={d.id} value={d.id}>{d.title} ({d.durationMin} min)</option>)}
-                  </optgroup>
-                )}
-              </select>
-              <SubmitButton pendingText="Adding…">+ Add to plan</SubmitButton>
-            </form>
+        <div className="no-print card mt-6 space-y-4 p-4">
+          <div>
+            <p className="mb-2 font-semibold">Add a drill</p>
+            {choices.length === 0 ? (
+              <p className="text-sm text-ink-500">
+                Add drills to your team library or your board first. <Link href="/drills" className="font-semibold text-brand-700">Browse drills →</Link>
+              </p>
+            ) : (
+              <form action={addPlanItem.bind(null, plan.id)} className="flex flex-wrap gap-2">
+                <select name="drillId" className="input min-w-60 flex-1">
+                  {teamChoices.length > 0 && (
+                    <optgroup label="Team library">
+                      {teamChoices.map((d) => <option key={d.id} value={d.id}>{d.title} (~{d.durationMin} min)</option>)}
+                    </optgroup>
+                  )}
+                  {myChoices.length > 0 && (
+                    <optgroup label="My Drills">
+                      {myChoices.map((d) => <option key={d.id} value={d.id}>{d.title} (~{d.durationMin} min)</option>)}
+                    </optgroup>
+                  )}
+                </select>
+                <SubmitButton pendingText="Adding…">+ Add</SubmitButton>
+              </form>
+            )}
+          </div>
+          {otherPlans.length > 0 && (
+            <div>
+              <p className="mb-2 font-semibold">Copy drills from another practice</p>
+              <form action={copyPlanItems.bind(null, plan.id)} className="flex flex-wrap gap-2">
+                <select name="sourceId" className="input min-w-60 flex-1">
+                  {otherPlans.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.startsAt ? `${formatDate(p.startsAt)} — ` : ""}{p.title} ({p._count.items} drills)
+                    </option>
+                  ))}
+                </select>
+                <SubmitButton className="btn-secondary" pendingText="Copying…">Copy drills</SubmitButton>
+              </form>
+            </div>
           )}
         </div>
+      )}
+
+      {!plan.cancelled && (
+        <section className="no-print card mt-6 p-5">
+          {started ? (
+            <div className="grid gap-6 md:grid-cols-2">
+              <RatePractice planId={plan.id} current={myRating} />
+              {isCoach && (
+                <div>
+                  <p className="mb-2 font-bold">Team feedback</p>
+                  <RatingSummary ratings={plan.ratings} members={plan.team._count.memberships} />
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-ink-500">⭐ After the practice, everyone on the team can rate it (1–4, anonymously).</p>
+          )}
+        </section>
       )}
     </div>
   );

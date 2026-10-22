@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import Header from "@/components/Header";
 import "./globals.css";
 
@@ -14,7 +15,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Header />
         <main className="flex-1">{children}</main>
         <footer className="no-print border-t border-slate-200 bg-white py-6 text-center text-xs text-ink-500">
-          Drill Hub · Videos are embedded from their original creators — please support them on their channels.
+          <p>Drill Hub · Videos are embedded from their original creators — please support them on their channels.</p>
+          <p className="mt-2 space-x-4">
+            <Link href="/terms" className="hover:text-brand-700">Terms</Link>
+            <Link href="/privacy" className="hover:text-brand-700">Privacy</Link>
+          </p>
         </footer>
       </body>
     </html>

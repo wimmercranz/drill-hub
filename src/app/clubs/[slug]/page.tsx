@@ -16,7 +16,7 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
     where: { slug },
     include: {
       members: {
-        include: { user: { select: { id: true, name: true, username: true, profileVisibility: true } } },
+        include: { user: { select: { id: true, name: true, username: true, profileVisibility: true, avatarUpdatedAt: true } } },
         orderBy: [{ role: "asc" }, { createdAt: "asc" }],
       },
     },
@@ -56,7 +56,7 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
         <div className="card divide-y divide-slate-100">
           {shown.map((m) => (
             <div key={m.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-              <Avatar name={m.user.name} size="sm" />
+              <Avatar user={m.user} size="sm" />
               <Link href={profileHref(m.user)} className="flex-1 font-medium hover:text-brand-700">
                 {m.user.name}{m.userId === viewer?.id && " (you)"}
                 {m.user.profileVisibility === "PRIVATE" && <span className="ml-1 text-xs text-ink-500">🔒</span>}

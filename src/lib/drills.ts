@@ -49,3 +49,22 @@ export async function coachedTeams(userId: string) {
 
 /** How many times a drill has been "used": saved to a profile or added to a team library. */
 export const usedCount = (d: { _count: { saves: number; teamDrills: number } }) => d._count.saves + d._count.teamDrills;
+
+/** Which drills the user already has: saved to their board, or in one of their teams' libraries. */
+export async function collectionState(userId: string | null) {
+  const saved = new Set<string>();
+  const inTeams = new Map<string, string[]>();
+  if (!userId) return { saved, inTeams };
+  const [saves, teamDrills] = await Promise.all([
+    db.personalSave.findMany({ where: { userId }, select: { drillId: true } }),
+    db.teamDrill.findMany({
+      where: { team: { memberships: { some: { userId } } } },
+      select: { drillId: true, team: { select: { name: true } } },
+    }),
+  ]);
+  saves.forEach((s) => saved.add(s.drillId));
+  teamDrills.forEach((t) => inTeams.set(t.drillId, [...(inTeams.get(t.drillId) ?? []), t.team.name]));
+  return { saved, inTeams };
+}
+
+export type CollectionState = Awaited<ReturnType<typeof collectionState>>;

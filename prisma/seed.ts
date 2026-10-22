@@ -2,6 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { basketballCategories, basketballDrills } from "./seed-data/basketball";
 import { slugify } from "../src/lib/slug";
+import { TERMS_VERSION } from "../src/lib/legal";
+import { WEEKDAYS, nowIn, occurrences, toDateInput, wallClock } from "../src/lib/time";
 
 const prisma = new PrismaClient();
 
@@ -62,8 +64,14 @@ async function main() {
   }
   console.log(`  ${basketballDrills.length} basketball drills`);
 
+  if (process.env.SEED_DEMO === "false") {
+    console.log("Done (no demo data).");
+    return;
+  }
+
   // Demo accounts so you can try the app straight away.
   const passwordHash = await bcrypt.hash("drillhub123", 10);
+  const consent = { termsAcceptedAt: new Date(), termsVersion: TERMS_VERSION };
   const coach = await prisma.user.upsert({
     where: { email: "coach@drillhub.test" },
     update: {},
@@ -74,20 +82,14 @@ async function main() {
       bio: "Youth coach · U14 Hawks · Big believer in defense first.",
       profileVisibility: "PUBLIC",
       passwordHash,
+      ...consent,
     },
   });
   const player = await prisma.user.upsert({
     where: { email: "player@drillhub.test" },
     update: {},
-    create: { name: "Pat Player", email: "player@drillhub.test", username: "pat-player", passwordHash },
+    create: { name: "Pat Player", email: "player@drillhub.test", username: "pat-player", passwordHash, ...consent },
   });
-
-  // Give any older accounts (created before profiles existed) a username.
-  for (const u of await prisma.user.findMany({ where: { username: null } })) {
-    let username = slugify(u.name) || "user";
-    for (let i = 2; await prisma.user.findUnique({ where: { username } }); i++) username = `${slugify(u.name)}-${i}`;
-    await prisma.user.update({ where: { id: u.id }, data: { username } });
-  }
 
   const club = await prisma.club.upsert({
     where: { slug: "demo-basketball-club" },
@@ -102,63 +104,92 @@ async function main() {
     });
   }
 
-  const team = await prisma.team.upsert({
-    where: { inviteCode: "HAWKS1" },
-    update: {},
-    create: { name: "Demo Hawks U14", inviteCode: "HAWKS1", sportId: basketball.id },
-  });
-  for (const [user, role] of [[coach, "COACH"], [player, "PLAYER"]] as const) {
-    await prisma.membership.upsert({
-      where: { userId_teamId: { userId: user.id, teamId: team.id } },
-      update: { role },
-      create: { userId: user.id, teamId: team.id, role },
-    });
+  const existingTeam = await prisma.team.findUnique({ where: { inviteCode: "HAWKS1" } });
+  if (existingTeam) {
+    console.log("Demo team already exists — skipping the rest of the demo data.");
+    return;
   }
+  const team = await prisma.team.create({ data: { name: "Demo Hawks U14", inviteCode: "HAWKS1", sportId: basketball.id } });
+  await prisma.membership.createMany({
+    data: [
+      { userId: coach.id, teamId: team.id, role: "COACH", title: "Head coach" },
+      { userId: player.id, teamId: team.id, role: "PLAYER" },
+    ],
+  });
 
   const pick = async (title: string) => prisma.drill.findUniqueOrThrow({ where: { slug: slugify(title) } });
   const teamDrills = ["Dynamic Warm-up", "Three-Man Weave", "Shell Drill", "Five-Spot Shooting", "Circle Box-Out", "3-on-2, 2-on-1 Continuous"];
   for (const title of teamDrills) {
-    const drill = await pick(title);
-    await prisma.teamDrill.upsert({
-      where: { teamId_drillId: { teamId: team.id, drillId: drill.id } },
-      update: {},
-      create: { teamId: team.id, drillId: drill.id, addedById: coach.id },
-    });
+    await prisma.teamDrill.create({ data: { teamId: team.id, drillId: (await pick(title)).id, addedById: coach.id } });
   }
-  for (const title of ["Mikan Drill", "Two-Ball Dribbling", "Form Shooting"]) {
-    const drill = await pick(title);
-    await prisma.personalSave.upsert({
-      where: { userId_drillId: { userId: player.id, drillId: drill.id } },
-      update: {},
-      create: { userId: player.id, drillId: drill.id },
+
+  // Pat's board: two columns plus an unsorted drill.
+  const warmups = await prisma.board.create({ data: { userId: player.id, title: "Warm-ups", order: 0 } });
+  const summer = await prisma.board.create({ data: { userId: player.id, title: "Summer program", order: 1 } });
+  const boardDrills: [string, string | null][] = [
+    ["Mikan Drill", warmups.id],
+    ["Form Shooting", warmups.id],
+    ["Two-Ball Dribbling", summer.id],
+    ["Beat the Pro", summer.id],
+    ["Euro Step Finishing", null],
+  ];
+  for (const [i, [title, boardId]] of boardDrills.entries()) {
+    await prisma.personalSave.create({ data: { userId: player.id, drillId: (await pick(title)).id, boardId, position: i } });
+  }
+
+  // Weekly practices: Tuesdays and Thursdays 18:00–19:30, from 4 weeks ago to 10 weeks ahead.
+  const today = new Date();
+  const from = wallClock(toDateInput(new Date(today.getTime() - 28 * 86_400_000)));
+  const to = wallClock(toDateInput(new Date(today.getTime() + 70 * 86_400_000)));
+  for (const weekday of [2, 4]) {
+    const schedule = await prisma.practiceSchedule.create({
+      data: { teamId: team.id, weekday, startTime: "18:00", durationMin: 90, location: "Main gym", startsOn: from, endsOn: to },
+    });
+    await prisma.practicePlan.createMany({
+      data: occurrences(weekday, "18:00", from, to).map((startsAt) => ({
+        title: `${WEEKDAYS[weekday]} practice`,
+        startsAt,
+        durationMin: 90,
+        location: "Main gym",
+        teamId: team.id,
+        scheduleId: schedule.id,
+      })),
     });
   }
 
-  if ((await prisma.practicePlan.count({ where: { teamId: team.id } })) === 0) {
-    const items: [string, number, string][] = [
-      ["Dynamic Warm-up", 6, ""],
-      ["Three-Man Weave", 8, "Focus on no dropped passes"],
-      ["Shell Drill", 15, "Start without dribbling"],
-      ["Five-Spot Shooting", 10, "Record makes"],
-      ["3-on-2, 2-on-1 Continuous", 12, ""],
-    ];
-    await prisma.practicePlan.create({
+  const plans = await prisma.practicePlan.findMany({ where: { teamId: team.id }, orderBy: { startsAt: "asc" } });
+  const now = nowIn(team.timezone);
+  const lastPast = plans.filter((p) => p.startsAt! < now).at(-1);
+  const nextUp = plans.find((p) => p.startsAt! > now);
+  const items: [string, number, string][] = [
+    ["Dynamic Warm-up", 6, ""],
+    ["Three-Man Weave", 8, "Focus on no dropped passes"],
+    ["Shell Drill", 15, "Start without dribbling"],
+    ["Five-Spot Shooting", 10, "Record makes"],
+    ["3-on-2, 2-on-1 Continuous", 12, ""],
+  ];
+  for (const plan of [lastPast, nextUp]) {
+    if (!plan) continue;
+    await prisma.practicePlan.update({
+      where: { id: plan.id },
       data: {
-        title: "Tuesday practice — defense focus",
-        teamId: team.id,
+        title: plan === nextUp ? `${plan.title} — defense focus` : plan.title,
         authorId: coach.id,
-        notes: "Bring pinnies. Water break after shell drill.",
+        notes: plan === nextUp ? "Bring pinnies. Water break after shell drill." : "",
         items: {
           create: await Promise.all(
-            items.map(async ([title, durationMin, note], order) => ({
-              order,
-              durationMin,
-              note,
-              drillId: (await pick(title)).id,
-            })),
+            items.map(async ([title, durationMin, note], order) => ({ order, durationMin, note, drillId: (await pick(title)).id })),
           ),
         },
       },
+    });
+  }
+  if (lastPast) {
+    await prisma.practiceRating.createMany({
+      data: [
+        { planId: lastPast.id, userId: player.id, rating: 3 },
+        { planId: lastPast.id, userId: coach.id, rating: 4 },
+      ],
     });
   }
 
