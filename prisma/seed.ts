@@ -56,6 +56,7 @@ async function main() {
       sourceTitle: d.sourceTitle ?? null,
       sourceUrl: d.videoId ? `https://www.youtube.com/watch?v=${d.videoId}` : null,
       visibility: "PUBLIC",
+      curated: true,
       sportId: basketball.id,
     };
     await prisma.drill.upsert({
@@ -64,7 +65,11 @@ async function main() {
       create: { ...data, slug, categories: { connect: d.categories.map(catId) } },
     });
   }
-  console.log(`  ${allDrills.length} basketball drills`);
+  // Curated drills that were removed from the seed files are removed from the site too.
+  const removed = await prisma.drill.deleteMany({
+    where: { curated: true, sportId: basketball.id, slug: { notIn: allDrills.map((d) => slugify(d.title)) } },
+  });
+  console.log(`  ${allDrills.length} basketball drills${removed.count ? ` (removed ${removed.count})` : ""}`);
 
   // Demo data is only created when SEED_DEMO=true (on your own computer, see .env.example).
   // Everywhere else (e.g. the live site) any old demo data is removed.

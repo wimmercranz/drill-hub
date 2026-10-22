@@ -4,7 +4,7 @@ A website where players and coaches discover sports drills, **collect** the ones
 
 Starting with basketball. The data model is multi-sport from day one, so other sports can be added later.
 
-## What it can do (v0.3)
+## What it can do (v0.4)
 
 - **Drill library:** 37 curated basketball drills with embedded YouTube videos, setup, steps, coaching points and variations. Search, filter, and sort by how often each drill is used. Cards show **✓ Saved** and **In [team]** badges.
 - **My Drills board:** collect drills and drag them between your own boards (e.g. "Warm-ups", "Summer program"), like Trello.
@@ -12,6 +12,7 @@ Starting with basketball. The data model is multi-sport from day one, so other s
 - **Teams:** coaches (head coach, assistant coaches…, all with the same rights) and players. Invite people by e-mail or with a team code.
 - **Practice schedule:** set weekly practice times for the season (e.g. Tue & Thu 18:00–19:30). Each practice gets its own plan. Changing the schedule moves all future practices; single practices can be moved or cancelled.
 - **Practice planner:** add drills, drag to reorder, see the clock for each drill and a **"75 / 90 min planned"** bar, copy drills from an earlier practice, and print.
+- **Saved practices:** under My Drills → Practices, build reusable practices (e.g. "Monthly shooting session"), or save any team practice for reuse. Use them in any team practice with one click (replace or add).
 - **Practice poll:** after each practice, everyone can rate it 1–4 **anonymously**; coaches see the average.
 - **Profiles & clubs:** profile picture, bio, public/private profile, clubs (with admins).
 - **Accounts & privacy:** e-mail/password or Google sign-in, password reset, terms + privacy policy at sign-up, download your data, delete your account.
@@ -111,6 +112,16 @@ Open <http://localhost:3000>. Next time, only `npm run dev` is needed. On your c
 | `prisma/schema.prisma` | Database structure |
 | `prisma/seed-data/basketball.ts` | The starter drills |
 | `src/app/terms`, `src/app/privacy` | Terms of use and privacy policy (drafts) |
+
+## Daily drill agent
+
+A scheduled task (**"Drillpin: add 5 daily drills"**) runs every morning at 06:07 Swedish time until **12 November 2026**.
+A Claude session researches 5 new drills, writes them into `prisma/seed-data/basketball-daily.ts`, runs the quality check
+(`npm run check:drills`) and pushes. Vercel then publishes them. The agent's instructions are in
+[`docs/drill-agent.md`](docs/drill-agent.md).
+
+To pause or delete it: claude.ai → Code → **Scheduled tasks** (or ask Claude). Each day's drills show up as a commit
+"Add daily drills YYYY-MM-DD" on GitHub. To remove a drill you don't like, delete it from that file (or ask Claude).
 
 ## About the videos
 

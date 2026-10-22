@@ -118,6 +118,7 @@ model Drill {
   sourceTitle    String? // title of the original video/article we credit
   sourceUrl      String?
   visibility     String   @default("PUBLIC") // PUBLIC | TEAM | PRIVATE
+  curated        Boolean  @default(false) // true = comes from prisma/seed-data (the starter library / daily agent)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
