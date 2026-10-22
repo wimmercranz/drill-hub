@@ -197,6 +197,21 @@ async function main() {
       },
     });
   }
+  await prisma.practiceTemplate.create({
+    data: {
+      title: "Monthly shooting session",
+      notes: "Bring all balls. Count makes in every drill.",
+      ownerId: coach.id,
+      items: {
+        create: await Promise.all(
+          ([["Dynamic Warm-up", 6], ["Form Shooting", 8], ["Five-Spot Shooting", 12], ["Hot Shot", 8], ["Free Throw Golf", 10]] as const).map(
+            async ([title, durationMin], order) => ({ order, durationMin, drillId: (await pick(title)).id }),
+          ),
+        ),
+      },
+    },
+  });
+
   if (lastPast) {
     await prisma.practiceRating.createMany({
       data: [

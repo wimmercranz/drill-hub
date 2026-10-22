@@ -7,6 +7,7 @@ import { coachedTeams, collectionState, drillCardInclude, levelLabel, lines, use
 import { embedUrl } from "@/lib/video";
 import { profileHref } from "@/lib/profiles";
 import { deleteDrill, moveSaveToBoard, toggleSave, toggleTeamDrill } from "@/app/actions/drills";
+import { addDrillToTemplate } from "@/app/actions/templates";
 import DrillCard from "@/components/DrillCard";
 import SubmitButton from "@/components/SubmitButton";
 
@@ -44,7 +45,7 @@ export default async function DrillPage({ params }: Props) {
   const drill = await loadDrill(slug, user?.id ?? null);
   if (!drill) notFound();
 
-  const [saved, teams, teamLinks, related, state, boards] = await Promise.all([
+  const [saved, teams, teamLinks, related, state, boards, templates] = await Promise.all([
     user ? db.personalSave.findUnique({ where: { userId_drillId: { userId: user.id, drillId: drill.id } } }) : null,
     user ? coachedTeams(user.id) : [],
     user ? db.teamDrill.findMany({ where: { drillId: drill.id, team: { memberships: { some: { userId: user.id } } } } }) : [],
@@ -61,6 +62,7 @@ export default async function DrillPage({ params }: Props) {
     }),
     collectionState(user?.id ?? null),
     user ? db.board.findMany({ where: { userId: user.id }, orderBy: { order: "asc" } }) : [],
+    user ? db.practiceTemplate.findMany({ where: { ownerId: user.id }, orderBy: { title: "asc" }, include: { items: { select: { drillId: true } } } }) : [],
   ]);
 
   const embed = embedUrl(drill.videoUrl);
@@ -192,6 +194,18 @@ export default async function DrillPage({ params }: Props) {
                     </form>
                   );
                 })}
+                {templates.length > 0 && (
+                  <form action={addDrillToTemplate.bind(null, drill.id, drill.slug)} className="flex gap-1 pt-1">
+                    <select name="templateId" className="input py-1.5" aria-label="Saved practice">
+                      {templates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.items.some((i) => i.drillId === drill.id) ? "✓ " : ""}Practice: {t.title}
+                        </option>
+                      ))}
+                    </select>
+                    <SubmitButton className="btn-secondary btn-sm" pendingText="…">+ Add</SubmitButton>
+                  </form>
+                )}
                 {teams.length === 0 && (
                   <p className="pt-2 text-xs text-ink-500">
                     Coaching a team? <Link href="/teams" className="font-semibold text-brand-700">Create one</Link> to build a shared library.

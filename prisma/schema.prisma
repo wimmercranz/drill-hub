@@ -23,9 +23,9 @@ model User {
   termsVersion    String?
 
   // Profile
-  username          String? @unique // used in the profile URL: /u/<username>
-  bio               String  @default("")
-  profileVisibility String  @default("PRIVATE") // PUBLIC | PRIVATE
+  username          String?   @unique // used in the profile URL: /u/<username>
+  bio               String    @default("")
+  profileVisibility String    @default("PRIVATE") // PUBLIC | PRIVATE
   avatar            String? // small JPEG as a data URL (resized in the browser to 256px)
   avatarUpdatedAt   DateTime? // null = no picture; also used to bust the browser cache
 
@@ -40,6 +40,7 @@ model User {
   ratings       PracticeRating[]
   invitesSent   TeamInvite[]
   resetTokens   PasswordResetToken[]
+  templates     PracticeTemplate[]
 }
 
 model PasswordResetToken {
@@ -124,13 +125,14 @@ model Drill {
   authorId String?
   teamId   String? // owning team when visibility is TEAM
 
-  sport      Sport              @relation(fields: [sportId], references: [id])
-  author     User?              @relation("DrillAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-  team       Team?              @relation("TeamOwnedDrills", fields: [teamId], references: [id], onDelete: Cascade)
-  categories Category[]
-  saves      PersonalSave[]
-  teamDrills TeamDrill[]
-  planItems  PracticePlanItem[]
+  sport         Sport                  @relation(fields: [sportId], references: [id])
+  author        User?                  @relation("DrillAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  team          Team?                  @relation("TeamOwnedDrills", fields: [teamId], references: [id], onDelete: Cascade)
+  categories    Category[]
+  saves         PersonalSave[]
+  teamDrills    TeamDrill[]
+  planItems     PracticePlanItem[]
+  templateItems PracticeTemplateItem[]
 }
 
 model Team {
@@ -301,4 +303,32 @@ model ClubMember {
   club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
 
   @@unique([userId, clubId])
+}
+
+// A saved practice: a person's reusable set of drills (e.g. "Monthly shooting session"),
+// kept under My Drills and usable in any team practice they coach.
+model PracticeTemplate {
+  id        String   @id @default(cuid())
+  title     String
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ownerId   String
+
+  owner User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  items PracticeTemplateItem[]
+
+  @@unique([ownerId, title])
+}
+
+model PracticeTemplateItem {
+  id          String @id @default(cuid())
+  order       Int
+  durationMin Int
+  note        String @default("")
+  templateId  String
+  drillId     String
+
+  template PracticeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  drill    Drill            @relation(fields: [drillId], references: [id], onDelete: Cascade)
 }

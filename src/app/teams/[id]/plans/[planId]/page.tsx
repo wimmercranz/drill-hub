@@ -6,6 +6,7 @@ import { getMembership, levelLabel } from "@/lib/drills";
 import { practiceHasStarted } from "@/lib/schedule";
 import { WEEKDAYS, addMinutes, formatDate, formatTime, toDateInput, toTimeInput } from "@/lib/time";
 import { addPlanItem, copyPlanItems, deletePlan, setCancelled, updatePlanDetails } from "@/app/actions/plans";
+import { applyTemplate, saveAsTemplate } from "@/app/actions/templates";
 import ActionForm from "@/components/ActionForm";
 import PlanItems from "@/components/PlanItems";
 import PrintButton from "@/components/PrintButton";
@@ -35,7 +36,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const started = practiceHasStarted(plan, plan.team.timezone);
 
   // Drills a coach can add: the team library plus the coach's own board.
-  const [choices, otherPlans] = isCoach
+  const [choices, otherPlans, templates] = isCoach
     ? await Promise.all([
         db.drill.findMany({
           where: { OR: [{ teamDrills: { some: { teamId: id } } }, { saves: { some: { userId: user.id } } }] },
@@ -48,8 +49,13 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           take: 20,
           include: { _count: { select: { items: true } } },
         }),
+        db.practiceTemplate.findMany({
+          where: { ownerId: user.id },
+          include: { items: { select: { durationMin: true } } },
+          orderBy: { title: "asc" },
+        }),
       ])
-    : [[], []];
+    : [[], [], []];
   const teamChoices = choices.filter((d) => d.teamDrills.length > 0);
   const myChoices = choices.filter((d) => d.teamDrills.length === 0);
 
@@ -184,6 +190,36 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               </form>
             )}
           </div>
+          <div className="rounded-lg bg-brand-50 p-3">
+            <p className="mb-2 font-semibold">📋 Use a saved practice</p>
+            {templates.length === 0 ? (
+              <p className="text-sm text-ink-500">
+                You have no saved practices yet. Save this one below, or build one under{" "}
+                <Link href="/me?tab=practices" className="font-semibold text-brand-700">My Drills → Practices</Link>.
+              </p>
+            ) : (
+              <form action={applyTemplate.bind(null, plan.id)} className="space-y-2">
+                <select name="templateId" className="input">
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title} ({t.items.length} drills · {t.items.reduce((s, i) => s + i.durationMin, 0)} min)
+                    </option>
+                  ))}
+                </select>
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <label className="flex items-center gap-1.5">
+                    <input type="radio" name="mode" value="replace" defaultChecked={plan.items.length === 0} className="accent-brand-600" /> Replace the drills
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    <input type="radio" name="mode" value="append" defaultChecked={plan.items.length > 0} className="accent-brand-600" /> Add after the current drills
+                  </label>
+                  <SubmitButton className="btn-primary btn-sm ml-auto" pendingText="Adding…" confirm={plan.items.length > 0 ? "Use this saved practice? If you chose “Replace”, the current drills are removed." : undefined}>
+                    Use it
+                  </SubmitButton>
+                </div>
+              </form>
+            )}
+          </div>
           {otherPlans.length > 0 && (
             <div>
               <p className="mb-2 font-semibold">Copy drills from another practice</p>
@@ -197,6 +233,16 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
                 </select>
                 <SubmitButton className="btn-secondary" pendingText="Copying…">Copy drills</SubmitButton>
               </form>
+            </div>
+          )}
+          {plan.items.length > 0 && (
+            <div>
+              <p className="mb-2 font-semibold">💾 Save for reuse</p>
+              <ActionForm action={saveAsTemplate.bind(null, plan.id)} className="flex flex-wrap gap-2">
+                <input name="title" defaultValue={plan.title} className="input min-w-60 flex-1" aria-label="Name of the saved practice" />
+                <SubmitButton className="btn-secondary" pendingText="Saving…">Save to My Drills</SubmitButton>
+              </ActionForm>
+              <p className="mt-1 text-xs text-ink-500">Saving with the name of an existing saved practice updates it.</p>
             </div>
           )}
         </div>

@@ -6,6 +6,7 @@ import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, 
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { removePlanItem, reorderPlanItems, updatePlanItem } from "@/app/actions/plans";
+import { removeTemplateItem, reorderTemplateItems, updateTemplateItem } from "@/app/actions/templates";
 import SubmitButton from "./SubmitButton";
 
 export type PlanItem = {
@@ -15,8 +16,27 @@ export type PlanItem = {
   drill: { slug: string; title: string; summary: string; meta: string };
 };
 
+// The same list is used for team practices and for saved practices (My Drills → Practices).
+const ACTIONS = {
+  plan: { reorder: reorderPlanItems, update: updatePlanItem, remove: removePlanItem },
+  template: { reorder: reorderTemplateItems, update: updateTemplateItem, remove: removeTemplateItem },
+};
+type Kind = keyof typeof ACTIONS;
+
 /** The drills of a practice. Coaches can drag to reorder and edit minutes/notes. */
-export default function PlanItems({ planId, items: initial, editable, startTime }: { planId: string; items: PlanItem[]; editable: boolean; startTime: string | null }) {
+export default function PlanItems({
+  planId,
+  items: initial,
+  editable,
+  startTime,
+  kind = "plan",
+}: {
+  planId: string;
+  items: PlanItem[];
+  editable: boolean;
+  startTime: string | null;
+  kind?: Kind;
+}) {
   const [items, setItems] = useState(initial);
   const [, startTransition] = useTransition();
   useEffect(() => setItems(initial), [initial]);
@@ -30,16 +50,16 @@ export default function PlanItems({ planId, items: initial, editable, startTime 
     if (!over || active.id === over.id) return;
     const next = arrayMove(items, items.findIndex((i) => i.id === active.id), items.findIndex((i) => i.id === over.id));
     setItems(next);
-    startTransition(() => reorderPlanItems(planId, next.map((i) => i.id)));
+    startTransition(() => ACTIONS[kind].reorder(planId, next.map((i) => i.id)));
   }
 
-  if (items.length === 0) return <div className="card p-8 text-center text-ink-500">No drills in this practice yet.</div>;
+  if (items.length === 0) return <div className="card p-8 text-center text-ink-500">No drills in this practice yet — add some below.</div>;
 
   let clock = 0;
   const rows = items.map((item, i) => {
     const start = clock;
     clock += item.durationMin;
-    return <Row key={item.id} item={item} index={i} start={start} end={clock} editable={editable} startTime={startTime} />;
+    return <Row key={item.id} item={item} index={i} start={start} end={clock} editable={editable} startTime={startTime} kind={kind} />;
   });
 
   if (!editable) return <ol className="space-y-3">{rows}</ol>;
@@ -59,7 +79,23 @@ function clockLabel(startTime: string | null, offset: number) {
   return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
-function Row({ item, index, start, end, editable, startTime }: { item: PlanItem; index: number; start: number; end: number; editable: boolean; startTime: string | null }) {
+function Row({
+  item,
+  index,
+  start,
+  end,
+  editable,
+  startTime,
+  kind,
+}: {
+  item: PlanItem;
+  index: number;
+  start: number;
+  end: number;
+  editable: boolean;
+  startTime: string | null;
+  kind: Kind;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id, disabled: !editable });
   return (
     <li
@@ -81,7 +117,7 @@ function Row({ item, index, start, end, editable, startTime }: { item: PlanItem;
         <p className="text-sm text-ink-500">{item.drill.summary}</p>
         <p className="mt-1 text-xs text-ink-500">{item.drill.meta}</p>
         {editable ? (
-          <form action={updatePlanItem.bind(null, item.id)} className="no-print mt-3 flex flex-wrap items-center gap-2">
+          <form action={ACTIONS[kind].update.bind(null, item.id)} className="no-print mt-3 flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-1 text-sm">
               <input name="durationMin" type="number" min={1} max={180} defaultValue={item.durationMin} className="input w-20 py-1" /> min
             </label>
@@ -95,7 +131,7 @@ function Row({ item, index, start, end, editable, startTime }: { item: PlanItem;
         </p>
       </div>
       {editable && (
-        <form action={removePlanItem.bind(null, item.id)} className="no-print">
+        <form action={ACTIONS[kind].remove.bind(null, item.id)} className="no-print">
           <SubmitButton className="btn-ghost btn-sm text-red-600" pendingText="…">✕</SubmitButton>
         </form>
       )}
