@@ -11,7 +11,8 @@
     "db:reset": "prisma migrate reset --force",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "build:app": "next build"
+    "build:app": "next build",
+    "check:drills": "tsx scripts/check-drills.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

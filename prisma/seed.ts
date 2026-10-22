@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { basketballCategories, basketballDrills } from "./seed-data/basketball";
+import { dailyBasketballDrills } from "./seed-data/basketball-daily";
 import { slugify } from "../src/lib/slug";
 import { TERMS_VERSION } from "../src/lib/legal";
 import { WEEKDAYS, nowIn, occurrences, toDateInput, wallClock } from "../src/lib/time";
@@ -37,7 +38,8 @@ async function main() {
     return { id: c.id };
   };
 
-  for (const d of basketballDrills) {
+  const allDrills = [...basketballDrills, ...dailyBasketballDrills];
+  for (const d of allDrills) {
     const slug = slugify(d.title);
     const data = {
       title: d.title,
@@ -62,7 +64,7 @@ async function main() {
       create: { ...data, slug, categories: { connect: d.categories.map(catId) } },
     });
   }
-  console.log(`  ${basketballDrills.length} basketball drills`);
+  console.log(`  ${allDrills.length} basketball drills`);
 
   // Demo data is only created when SEED_DEMO=true (on your own computer, see .env.example).
   // Everywhere else (e.g. the live site) any old demo data is removed.
