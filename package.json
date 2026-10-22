@@ -1,16 +1,17 @@
 {
   "name": "drill-hub",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma migrate deploy && prisma db seed && next build",
     "start": "next start",
     "lint": "eslint",
     "setup": "prisma migrate deploy && prisma db seed",
     "db:reset": "prisma migrate reset --force",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "build:app": "next build"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
