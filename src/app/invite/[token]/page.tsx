@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { acceptInvite } from "@/app/actions/teams";
 import SubmitButton from "@/components/SubmitButton";
+import TeamAvatar from "@/components/TeamAvatar";
 
 export const metadata = { title: "Team invitation" };
 
@@ -27,7 +28,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
           </>
         ) : (
           <>
-            <div className="text-5xl">{invite.team.sport.emoji}</div>
+            <div className="flex justify-center">{user ? <TeamAvatar team={invite.team} size="lg" /> : <span className="text-5xl">{invite.team.sport.emoji}</span>}</div>
             <h1 className="mt-3 text-2xl font-extrabold">Join {invite.team.name}</h1>
             <p className="mt-1 text-ink-500">
               {invite.invitedBy ? `${invite.invitedBy.name} invited you` : "You're invited"} to join as{" "}

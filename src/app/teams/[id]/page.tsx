@@ -9,9 +9,11 @@ import { profileHref } from "@/lib/profiles";
 import { WEEKDAYS, addMinutes, formatDate, formatTime, nowIn, toDateInput } from "@/lib/time";
 import { toggleTeamDrill } from "@/app/actions/drills";
 import { addSchedule, createPlan, deleteSchedule, setTeamTimezone, updateSchedule } from "@/app/actions/plans";
-import { deleteTeam, inviteByEmail, regenerateInvite, removeMember, revokeInvite, setMemberRole, setMemberTitle, updateTeamDrillNote } from "@/app/actions/teams";
+import { deleteTeam, inviteByEmail, regenerateInvite, removeTeamAvatar, updateTeamAvatar, removeMember, revokeInvite, setMemberRole, setMemberTitle, updateTeamDrillNote } from "@/app/actions/teams";
 import ActionForm from "@/components/ActionForm";
 import Avatar from "@/components/Avatar";
+import AvatarUpload from "@/components/AvatarUpload";
+import TeamAvatar from "@/components/TeamAvatar";
 import CopyButton from "@/components/CopyButton";
 import DrillCard, { DrillGrid } from "@/components/DrillCard";
 import { RatingBadge } from "@/components/RatingSummary";
@@ -57,13 +59,24 @@ export default async function TeamPage({
 
   return (
     <div className="container-page py-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-wrap items-center gap-4">
+        <TeamAvatar team={team} size="lg" />
+        <div className="flex-1">
           <p className="text-sm font-semibold text-brand-700">{team.sport.emoji} {team.sport.name} team</p>
           <h1 className="text-3xl font-extrabold tracking-tight">{team.name}</h1>
           <p className="text-ink-500">
             {team.memberships.length} members · {team._count.drills} drills · you are {me.title ? me.title.toLowerCase() : isCoach ? "a coach" : "a player"}
           </p>
+          {isCoach && (
+            <div className="mt-2">
+              <AvatarUpload
+                hasAvatar={!!team.avatarUpdatedAt}
+                upload={updateTeamAvatar.bind(null, team.id)}
+                remove={removeTeamAvatar.bind(null, team.id)}
+                labels={{ add: "Add team picture", change: "Change team picture" }}
+              />
+            </div>
+          )}
         </div>
       </div>
 

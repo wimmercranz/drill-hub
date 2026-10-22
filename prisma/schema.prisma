@@ -137,12 +137,14 @@ model Drill {
 }
 
 model Team {
-  id         String   @id @default(cuid())
-  name       String
-  inviteCode String   @unique
-  timezone   String   @default("Europe/Stockholm")
-  createdAt  DateTime @default(now())
-  sportId    String
+  id              String    @id @default(cuid())
+  name            String
+  inviteCode      String    @unique
+  timezone        String    @default("Europe/Stockholm")
+  avatar          String? // team picture/logo: small JPEG data URL (resized in the browser)
+  avatarUpdatedAt DateTime? // null = no picture (the sport emoji is shown instead)
+  createdAt       DateTime  @default(now())
+  sportId         String
 
   sport       Sport              @relation(fields: [sportId], references: [id])
   memberships Membership[]

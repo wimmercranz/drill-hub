@@ -2,7 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { profileHref } from "@/lib/profiles";
-import { deleteAccount, removeClubMember, updateProfile } from "@/app/actions/profile";
+import { deleteAccount, removeAvatar, removeClubMember, updateAvatar, updateProfile } from "@/app/actions/profile";
 import { logout } from "@/app/actions/auth";
 import Avatar from "@/components/Avatar";
 import AvatarUpload from "@/components/AvatarUpload";
@@ -34,7 +34,7 @@ export default async function SettingsPage() {
         <Avatar user={user} size="lg" />
         <div>
           <p className="mb-2 font-bold">Profile picture</p>
-          <AvatarUpload hasAvatar={!!user.avatarUpdatedAt} />
+          <AvatarUpload hasAvatar={!!user.avatarUpdatedAt} upload={updateAvatar} remove={removeAvatar} />
         </div>
       </div>
 

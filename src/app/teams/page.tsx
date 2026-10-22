@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createTeam, joinTeam } from "@/app/actions/teams";
 import ActionForm from "@/components/ActionForm";
+import TeamAvatar from "@/components/TeamAvatar";
 import SubmitButton from "@/components/SubmitButton";
 
 export const metadata = { title: "Teams" };
@@ -29,7 +30,7 @@ export default async function TeamsPage({ searchParams }: { searchParams: Promis
         {memberships.map(({ team, role }) => (
           <Link key={team.id} href={`/teams/${team.id}`} className="card p-5 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md">
             <div className="flex items-start justify-between">
-              <span className="text-3xl">{team.sport.emoji}</span>
+              <TeamAvatar team={team} size="md" />
               <span className={`chip ${role === "COACH" ? "bg-brand-100 text-brand-700" : ""}`}>{role === "COACH" ? "Coach" : "Player"}</span>
             </div>
             <h2 className="mt-3 text-lg font-bold">{team.name}</h2>

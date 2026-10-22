@@ -1,10 +1,21 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { removeAvatar, updateAvatar } from "@/app/actions/profile";
 
-/** Resizes the chosen picture in the browser (square, 256×256 JPEG) and uploads it. */
-export default function AvatarUpload({ hasAvatar }: { hasAvatar: boolean }) {
+type UploadResult = { error?: string; success?: string };
+
+/** Resizes the chosen picture in the browser (square, 256×256 JPEG) and uploads it with the given action. */
+export default function AvatarUpload({
+  hasAvatar,
+  upload,
+  remove,
+  labels = { add: "Upload picture", change: "Change picture" },
+}: {
+  hasAvatar: boolean;
+  upload: (dataUrl: string) => Promise<UploadResult>;
+  remove: () => Promise<void>;
+  labels?: { add: string; change: string };
+}) {
   const input = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -27,7 +38,7 @@ export default function AvatarUpload({ hasAvatar }: { hasAvatar: boolean }) {
     URL.revokeObjectURL(img.src);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     startTransition(async () => {
-      const res = await updateAvatar(dataUrl);
+      const res = await upload(dataUrl);
       setMessage(res.error ?? res.success ?? null);
     });
   }
@@ -36,10 +47,10 @@ export default function AvatarUpload({ hasAvatar }: { hasAvatar: boolean }) {
     <div className="flex flex-wrap items-center gap-2">
       <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
       <button type="button" className="btn-secondary btn-sm" disabled={pending} onClick={() => input.current?.click()}>
-        {pending ? "Uploading…" : hasAvatar ? "Change picture" : "Upload picture"}
+        {pending ? "Uploading…" : hasAvatar ? labels.change : labels.add}
       </button>
       {hasAvatar && (
-        <button type="button" className="btn-ghost btn-sm text-ink-500" disabled={pending} onClick={() => startTransition(() => removeAvatar())}>
+        <button type="button" className="btn-ghost btn-sm text-ink-500" disabled={pending} onClick={() => startTransition(() => remove())}>
           Remove
         </button>
       )}

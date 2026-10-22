@@ -182,3 +182,21 @@ export async function deleteTeam(teamId: string, _: FormState, formData: FormDat
   revalidatePath("/", "layout");
   redirect("/teams?deleted=1");
 }
+
+const MAX_PICTURE_BYTES = 300_000;
+
+export async function updateTeamAvatar(teamId: string, dataUrl: string) {
+  await requireCoach(teamId);
+  if (!dataUrl.startsWith("data:image/jpeg;base64,") || dataUrl.length > MAX_PICTURE_BYTES) {
+    return { error: "Please choose a smaller image." };
+  }
+  await db.team.update({ where: { id: teamId }, data: { avatar: dataUrl, avatarUpdatedAt: new Date() } });
+  revalidatePath("/", "layout");
+  return { success: "Team picture updated." };
+}
+
+export async function removeTeamAvatar(teamId: string) {
+  await requireCoach(teamId);
+  await db.team.update({ where: { id: teamId }, data: { avatar: null, avatarUpdatedAt: null } });
+  revalidatePath("/", "layout");
+}

@@ -14,7 +14,7 @@ Starting with basketball. The data model is multi-sport from day one, so other s
 - **Practice planner:** add drills, drag to reorder, see the clock for each drill and a **"75 / 90 min planned"** bar, copy drills from an earlier practice, and print.
 - **Saved practices:** under My Drills → Practices, build reusable practices (e.g. "Monthly shooting session"), or save any team practice for reuse. Use them in any team practice with one click (replace or add).
 - **Practice poll:** after each practice, everyone can rate it 1–4 **anonymously**; coaches see the average.
-- **Profiles & clubs:** profile picture, bio, public/private profile, clubs (with admins).
+- **Profiles & clubs:** team pictures, profile picture, bio, public/private profile, clubs (with admins).
 - **Accounts & privacy:** e-mail/password or Google sign-in, password reset, terms + privacy policy at sign-up, download your data, delete your account.
 
 ---
@@ -150,6 +150,7 @@ Videos are **embedded** from YouTube, never downloaded or re-hosted. Every drill
 - [x] No demo data on the live site
 
 **Later:**
+- [ ] Design review of the whole site (decided: run with the current design first, revisit later)
 - [ ] "Holiday bundles": one-time drill packages for players, e.g. a summer holiday program
 - [ ] Club admin tools: link teams to a club, shared club library
 - [ ] Comments on drills — *decided: start without comments; if added, keep them limited and use an AI moderation agent to screen for hate speech and illegal content before posting*

@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { drillCardInclude, visibleTo } from "@/lib/drills";
 import { profileHref } from "@/lib/profiles";
 import { thumbnailUrl } from "@/lib/video";
+import TeamAvatar from "@/components/TeamAvatar";
 import DrillBoard, { type BoardCard, type BoardColumn } from "@/components/DrillBoard";
 import DrillCard, { DrillGrid } from "@/components/DrillCard";
 import { createTemplate } from "@/app/actions/templates";
@@ -68,7 +69,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
         <div className="mt-4 flex flex-wrap gap-2">
           {memberships.map((m) => (
             <Link key={m.id} href={`/teams/${m.teamId}`} className="card flex items-center gap-2 px-3 py-1.5 text-sm hover:border-brand-500">
-              <span>{m.team.sport.emoji}</span>
+              <TeamAvatar team={m.team} size="xs" />
               <span className="font-semibold">{m.team.name}</span>
               <span className="chip">{m.title || (m.role === "COACH" ? "Coach" : "Player")}</span>
             </Link>
