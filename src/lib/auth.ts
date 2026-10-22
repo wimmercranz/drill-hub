@@ -5,7 +5,7 @@ import { createHash, randomBytes } from "crypto";
 import { cache } from "react";
 import { db } from "./db";
 
-const COOKIE = "drillhub_session";
+const COOKIE = "drillpin_session";
 const SESSION_DAYS = 30;
 
 const hash = (token: string) => createHash("sha256").update(token).digest("hex");

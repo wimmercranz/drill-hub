@@ -2,7 +2,7 @@ export default function LegalPage({ title, updated, children }: { title: string;
   return (
     <div className="container-page max-w-3xl py-10">
       <p className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-        <strong>Draft for testing.</strong> This text has not yet been reviewed by a lawyer and the parts in [brackets] must be filled in before Drill Hub launches publicly.
+        <strong>Draft for testing.</strong> This text has not yet been reviewed by a lawyer and the parts in [brackets] must be filled in before Drillpin launches publicly.
       </p>
       <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
       <p className="mt-1 text-sm text-ink-500">Last updated: {updated}</p>

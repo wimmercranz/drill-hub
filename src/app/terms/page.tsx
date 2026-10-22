@@ -8,7 +8,7 @@ export default function TermsPage() {
   return (
     <LegalPage title="Terms of use" updated="October 2026">
       <p>
-        Drill Hub is a service where players, coaches and clubs collect and share sports drills and plan practices. It is
+        Drillpin is a service where players, coaches and clubs collect and share sports drills and plan practices. It is
         provided by [Owner name / company, organisation number, address] (&quot;we&quot;). By creating an account you agree to these terms.
       </p>
 
@@ -36,12 +36,12 @@ export default function TermsPage() {
       <h2>4. Safety</h2>
       <p>
         Drills are suggestions. Coaches and players are responsible for running practices safely and adapting drills to the players&apos;
-        age, level and health. Drill Hub is not responsible for injuries that happen during practice.
+        age, level and health. Drillpin is not responsible for injuries that happen during practice.
       </p>
 
       <h2>5. The service</h2>
       <p>
-        Drill Hub is currently free and provided &quot;as is&quot;, while it is being developed. Features may change, and we can&apos;t guarantee
+        Drillpin is currently free and provided &quot;as is&quot;, while it is being developed. Features may change, and we can&apos;t guarantee
         the service is always available or free of errors. We will tell users about important changes to these terms.
       </p>
 

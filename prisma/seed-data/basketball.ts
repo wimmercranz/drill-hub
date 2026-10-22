@@ -1,6 +1,6 @@
 // Curated starter library for basketball.
 // Videos are embedded from YouTube (never re-hosted) and every drill credits its source.
-// Descriptions are written by Drill Hub, not copied from the videos.
+// Descriptions are written by Drillpin, not copied from the videos.
 
 export type SeedDrill = {
   title: string;

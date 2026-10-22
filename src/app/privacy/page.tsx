@@ -8,7 +8,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage title="Privacy policy" updated="October 2026">
       <p>
-        This policy explains what personal data Drill Hub collects, why, and what rights you have under the EU General Data
+        This policy explains what personal data Drillpin collects, why, and what rights you have under the EU General Data
         Protection Regulation (GDPR). The data controller is [Owner name / company, organisation number, address, contact e-mail].
       </p>
 
@@ -38,7 +38,7 @@ export default function PrivacyPage() {
       </ul>
 
       <h2>Service providers</h2>
-      <p>We use these providers to run Drill Hub. They only process data on our behalf, under data processing agreements:</p>
+      <p>We use these providers to run Drillpin. They only process data on our behalf, under data processing agreements:</p>
       <ul>
         <li>[Vercel] — hosting of the website.</li>
         <li>[Neon] — database.</li>
@@ -56,7 +56,7 @@ export default function PrivacyPage() {
 
       <h2>Children</h2>
       <p>
-        Drill Hub is used by youth teams. Users under {MIN_AGE} need permission from a parent or guardian. Profiles are private by
+        Drillpin is used by youth teams. Users under {MIN_AGE} need permission from a parent or guardian. Profiles are private by
         default. Parents can contact us at [contact e-mail] to see or delete a child&apos;s data.
       </p>
 

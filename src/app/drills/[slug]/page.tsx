@@ -205,7 +205,7 @@ export default async function DrillPage({ params }: Props) {
 
           <div className="card p-5 text-sm text-ink-700">
             <p>
-              {drill.author ? <>Added by <Link href={profileHref(drill.author)} className="font-semibold hover:text-brand-700">{drill.author.name}</Link></> : <>Curated by <strong>Drill Hub</strong></>}
+              {drill.author ? <>Added by <Link href={profileHref(drill.author)} className="font-semibold hover:text-brand-700">{drill.author.name}</Link></> : <>Curated by <strong>Drillpin</strong></>}
             </p>
             {drill.team && <p className="mt-1">Visible to team <strong>{drill.team.name}</strong></p>}
             {drill.visibility === "PRIVATE" && <p className="mt-1">🔒 Only you can see this drill</p>}

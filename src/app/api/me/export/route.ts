@@ -22,7 +22,7 @@ export async function GET() {
   return new Response(JSON.stringify({ exportedAt: new Date(), ...user }, null, 2), {
     headers: {
       "Content-Type": "application/json",
-      "Content-Disposition": `attachment; filename="drill-hub-data-${user.username ?? "me"}.json"`,
+      "Content-Disposition": `attachment; filename="drillpin-data-${user.username ?? "me"}.json"`,
     },
   });
 }

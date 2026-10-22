@@ -88,8 +88,8 @@ export async function requestPasswordReset(_: FormState, formData: FormData): Pr
     });
     await sendEmail({
       to: user.email,
-      subject: "Reset your Drill Hub password",
-      text: `Hi ${user.name},\n\nClick the link below to choose a new password. The link is valid for 1 hour.\n\n${appUrl()}/reset-password/${token}\n\nIf you didn't ask for this, you can ignore this e-mail.\n\n— Drill Hub`,
+      subject: "Reset your Drillpin password",
+      text: `Hi ${user.name},\n\nClick the link below to choose a new password. The link is valid for 1 hour.\n\n${appUrl()}/reset-password/${token}\n\nIf you didn't ask for this, you can ignore this e-mail.\n\n— Drillpin`,
     });
   }
   // Same answer whether or not the account exists, so e-mail addresses can't be probed.

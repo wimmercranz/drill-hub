@@ -1,4 +1,4 @@
-// Drill Hub database schema.
+// Drillpin database schema.
 // PostgreSQL database. DATABASE_URL in .env points at it (see README).
 
 generator client {

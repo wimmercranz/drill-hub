@@ -16,7 +16,7 @@ const sports = [
 ];
 
 async function main() {
-  console.log("Seeding Drill Hub…");
+  console.log("Seeding Drillpin…");
 
   for (const s of sports) {
     await prisma.sport.upsert({ where: { slug: s.slug }, update: s, create: s });
@@ -70,14 +70,18 @@ async function main() {
   }
 
   // Demo accounts so you can try the app straight away.
-  const passwordHash = await bcrypt.hash("drillhub123", 10);
+  const passwordHash = await bcrypt.hash("drillpin123", 10);
+  // The service used to be called "Drill Hub": move the old demo accounts over to the new addresses.
+  for (const who of ["coach", "player"]) {
+    await prisma.user.updateMany({ where: { email: `${who}@drillhub.test` }, data: { email: `${who}@drillpin.test`, passwordHash } });
+  }
   const consent = { termsAcceptedAt: new Date(), termsVersion: TERMS_VERSION };
   const coach = await prisma.user.upsert({
-    where: { email: "coach@drillhub.test" },
+    where: { email: "coach@drillpin.test" },
     update: {},
     create: {
       name: "Casey Coach",
-      email: "coach@drillhub.test",
+      email: "coach@drillpin.test",
       username: "casey-coach",
       bio: "Youth coach · U14 Hawks · Big believer in defense first.",
       profileVisibility: "PUBLIC",
@@ -86,9 +90,9 @@ async function main() {
     },
   });
   const player = await prisma.user.upsert({
-    where: { email: "player@drillhub.test" },
+    where: { email: "player@drillpin.test" },
     update: {},
-    create: { name: "Pat Player", email: "player@drillhub.test", username: "pat-player", passwordHash, ...consent },
+    create: { name: "Pat Player", email: "player@drillpin.test", username: "pat-player", passwordHash, ...consent },
   });
 
   const club = await prisma.club.upsert({
@@ -193,7 +197,7 @@ async function main() {
     });
   }
 
-  console.log("Done. Demo logins: coach@drillhub.test / player@drillhub.test (password: drillhub123)");
+  console.log("Done. Demo logins: coach@drillpin.test / player@drillpin.test (password: drillpin123)");
 }
 
 main()

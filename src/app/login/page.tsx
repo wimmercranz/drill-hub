@@ -40,7 +40,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </p>
         {process.env.NODE_ENV !== "production" && (
           <p className="mt-4 rounded-lg bg-slate-50 p-3 text-xs text-ink-500">
-            Demo: <code>coach@drillhub.test</code> or <code>player@drillhub.test</code>, password <code>drillhub123</code>
+            Demo: <code>coach@drillpin.test</code> or <code>player@drillpin.test</code>, password <code>drillpin123</code>
           </p>
         )}
       </div>

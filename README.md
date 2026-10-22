@@ -1,4 +1,4 @@
-# Drill Hub 🏀
+# Drillpin 📌
 
 A website where players and coaches discover sports drills, **collect** the ones they like, share them with their team and plan practices.
 
@@ -35,26 +35,34 @@ The site runs on **Vercel** (hosting) and **Neon** (database). Both have free pl
    | Name | Value |
    |---|---|
    | `DATABASE_URL` | the Neon connection string from step 1 |
-   | `APP_URL` | `https://drill-hub.vercel.app` (fill in after the first deploy if it's different, see below) |
+   | `APP_URL` | your Vercel address for now, e.g. `https://drill-hub-xyz.vercel.app` (changed to `https://drillpin.app` in step 3) |
 
 4. Click **Deploy**. After 2–3 minutes you get your site's address, e.g. `https://drill-hub-xyz.vercel.app`.
 5. If the address differs from what you put in `APP_URL`: go to **Settings → Environment Variables**, update `APP_URL`, then **Deployments → ⋯ → Redeploy**.
 
-The database tables and the 37 drills are created automatically during deployment. The demo logins (`coach@drillhub.test` / `player@drillhub.test`, password `drillhub123`) work there too.
+The database tables and the 37 drills are created automatically during deployment. The demo logins (`coach@drillpin.test` / `player@drillpin.test`, password `drillpin123`) work there too.
 
-### 3. Optional: "Continue with Google"
-1. Go to <https://console.cloud.google.com>, create a project called **Drill Hub**.
+### 3. Connect the domain (drillpin.app)
+1. In Vercel, open the project → **Settings → Domains → Add** and type `drillpin.app`. Also add `www.drillpin.app` and choose "redirect to drillpin.app".
+   (If you bought the domain in Vercel, the DNS is set up automatically. Otherwise Vercel shows which records to add at your registrar.)
+2. **Settings → Environment Variables:** set `APP_URL` to `https://drillpin.app`.
+3. **Deployments → ⋯ → Redeploy.**
+
+### 4. Optional: "Continue with Google"
+1. Go to <https://console.cloud.google.com>, create a project called **Drillpin**.
 2. **APIs & Services → OAuth consent screen:** choose *External*, fill in app name and your e-mail, save. Under *Audience*, add your own and your testers' Google addresses as test users.
 3. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application.** Under *Authorized redirect URIs* add:
-   - `https://YOUR-SITE.vercel.app/auth/google/callback`
+   - `https://drillpin.app/auth/google/callback`
    - `http://localhost:3000/auth/google/callback`
 4. Copy the **Client ID** and **Client secret** into Vercel as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, then redeploy.
 
-### 4. Optional: real e-mails (invitations, password reset)
-1. Sign up at <https://resend.com> and create an API key.
-2. Add it in Vercel as `RESEND_API_KEY` and redeploy.
+### 5. Optional: real e-mails (invitations, password reset)
+1. Sign up at <https://resend.com>, go to **Domains → Add domain** and enter `drillpin.app`.
+2. Resend shows a few DNS records (TXT/MX). Add them in Vercel under **your team → Domains → drillpin.app → DNS Records**. Wait until Resend says *Verified* (minutes to a few hours).
+3. In Resend, create an **API key**.
+4. In Vercel, add `RESEND_API_KEY` (the key) and `EMAIL_FROM` = `Drillpin <noreply@drillpin.app>`, then redeploy.
 
-Until you verify your own domain in Resend, it can only send e-mails **to your own address**. Until then, invitations show a **Link** button so you can copy and send the link yourself. E-mails that couldn't be sent are listed in Vercel under **Logs**.
+Until this is done, invitations show a **Link** button so you can copy and send the link yourself, and e-mails are listed in Vercel under **Logs**.
 
 ---
 
@@ -126,7 +134,8 @@ Videos are **embedded** from YouTube, never downloaded or re-hosted. Every drill
 **Before going public:**
 - [ ] Have the terms and privacy policy reviewed by a lawyer and fill in the [bracketed] parts
 - [ ] Sign data processing agreements with Vercel, Neon and Resend (usually a click in their dashboards)
-- [ ] Own domain name + verified sending domain for e-mails
+- [x] Own domain name: drillpin.app
+- [ ] Verified sending domain for e-mails (Resend)
 - [ ] Turn off demo data (SEED_DEMO=false)
 
 **Later:**

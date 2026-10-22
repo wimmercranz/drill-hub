@@ -14,7 +14,7 @@ export async function sendEmail({ to, subject, text }: { to: string; subject: st
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: process.env.EMAIL_FROM ?? "Drill Hub <onboarding@resend.dev>",
+      from: process.env.EMAIL_FROM ?? "Drillpin <onboarding@resend.dev>",
       to,
       subject,
       text,

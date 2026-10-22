@@ -132,8 +132,8 @@ export async function inviteByEmail(teamId: string, _: FormState, formData: Form
     await db.teamInvite.create({ data: { token, email, role, title, teamId, invitedById: user.id } });
     const res = await sendEmail({
       to: email,
-      subject: `${user.name} invited you to ${team.name} on Drill Hub`,
-      text: `Hi!\n\n${user.name} has invited you to join ${team.name} on Drill Hub as ${role === "COACH" ? title.toLowerCase() || "coach" : "a player"}.\n\nDrill Hub is where your team shares drills and practice plans.\n\nJoin here: ${appUrl()}/invite/${token}\n\n— Drill Hub`,
+      subject: `${user.name} invited you to ${team.name} on Drillpin`,
+      text: `Hi!\n\n${user.name} has invited you to join ${team.name} on Drillpin as ${role === "COACH" ? title.toLowerCase() || "coach" : "a player"}.\n\nDrillpin is where your team shares drills and practice plans.\n\nJoin here: ${appUrl()}/invite/${token}\n\n— Drillpin`,
     });
     if (res.sent) sent++;
   }
