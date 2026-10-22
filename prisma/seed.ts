@@ -64,8 +64,17 @@ async function main() {
   }
   console.log(`  ${basketballDrills.length} basketball drills`);
 
-  if (process.env.SEED_DEMO === "false") {
-    console.log("Done (no demo data).");
+  // Demo data is only created when SEED_DEMO=true (on your own computer, see .env.example).
+  // Everywhere else (e.g. the live site) any old demo data is removed.
+  if (process.env.SEED_DEMO !== "true") {
+    const demoEmails = ["coach", "player"].flatMap((w) => [`${w}@drillpin.test`, `${w}@drillhub.test`]);
+    const removed = await prisma.$transaction([
+      prisma.team.deleteMany({ where: { inviteCode: "HAWKS1" } }),
+      prisma.club.deleteMany({ where: { slug: "demo-basketball-club" } }),
+      prisma.user.deleteMany({ where: { email: { in: demoEmails } } }),
+    ]);
+    const [teams, clubs, users] = removed.map((r) => r.count);
+    console.log(`Done (no demo data${users + teams + clubs ? `; removed ${users} demo users, ${teams} demo team, ${clubs} demo club` : ""}).`);
     return;
   }
 

@@ -40,7 +40,7 @@ The site runs on **Vercel** (hosting) and **Neon** (database). Both have free pl
 4. Click **Deploy**. After 2–3 minutes you get your site's address, e.g. `https://drill-hub-xyz.vercel.app`.
 5. If the address differs from what you put in `APP_URL`: go to **Settings → Environment Variables**, update `APP_URL`, then **Deployments → ⋯ → Redeploy**.
 
-The database tables and the 37 drills are created automatically during deployment. The demo logins (`coach@drillpin.test` / `player@drillpin.test`, password `drillpin123`) work there too.
+The database tables and the 37 drills are created automatically during deployment. The live site has no demo accounts: sign up with your own e-mail.
 
 ### 3. Connect the domain (drillpin.app)
 1. In Vercel, open the project → **Settings → Domains → Add** and type `drillpin.app`. Also add `www.drillpin.app` and choose "redirect to drillpin.app".
@@ -85,7 +85,7 @@ npm run setup
 npm run dev
 ```
 
-Open <http://localhost:3000>. Next time, only `npm run dev` is needed. Locally, e-mails (invitations, password resets) are printed in the Terminal window instead of being sent.
+Open <http://localhost:3000>. Next time, only `npm run dev` is needed. On your computer there are demo logins (`coach@drillpin.test` / `player@drillpin.test`, password `drillpin123`), created because `SEED_DEMO="true"` is in `.env`. Locally, e-mails (invitations, password resets) are printed in the Terminal window instead of being sent.
 
 ### Useful commands
 
@@ -136,7 +136,7 @@ Videos are **embedded** from YouTube, never downloaded or re-hosted. Every drill
 - [ ] Sign data processing agreements with Vercel, Neon and Resend (usually a click in their dashboards)
 - [x] Own domain name: drillpin.app
 - [ ] Verified sending domain for e-mails (Resend)
-- [ ] Turn off demo data (SEED_DEMO=false)
+- [x] No demo data on the live site
 
 **Later:**
 - [ ] "Holiday bundles": one-time drill packages for players, e.g. a summer holiday program
