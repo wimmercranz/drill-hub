@@ -90,7 +90,35 @@ export async function createDrill(_: FormState, formData: FormData): Promise<For
   });
   // Authors automatically collect their own drills.
   await db.personalSave.create({ data: { userId: user.id, drillId: drill.id, position: -Date.now() % 1_000_000_000 } });
-  redirect(`/drills/${drill.slug}`);
+
+  // Started from a practice planner: add the drill there and go back to it.
+  const back = await addNewDrillToPractice(user.id, drill, formData);
+  redirect(back ?? `/drills/${drill.slug}`);
+}
+
+/** Adds a just-created drill to the team practice or saved practice it was created from; returns that page's URL. */
+async function addNewDrillToPractice(userId: string, drill: { id: string; durationMin: number }, formData: FormData) {
+  const planId = String(formData.get("addToPlan") ?? "");
+  const templateId = String(formData.get("addToPractice") ?? "");
+  if (planId) {
+    const plan = await db.practicePlan.findUnique({ where: { id: planId } });
+    if (!plan || (await getMembership(userId, plan.teamId))?.role !== "COACH") return null;
+    const order = await db.practicePlanItem.count({ where: { planId } });
+    await db.practicePlanItem.create({ data: { planId, drillId: drill.id, order, durationMin: drill.durationMin } });
+    revalidatePath(`/teams/${plan.teamId}`);
+    revalidatePath(`/teams/${plan.teamId}/plans/${planId}`);
+    return `/teams/${plan.teamId}/plans/${planId}`;
+  }
+  if (templateId) {
+    const template = await db.practiceTemplate.findUnique({ where: { id: templateId } });
+    if (!template || template.ownerId !== userId) return null;
+    const order = await db.practiceTemplateItem.count({ where: { templateId } });
+    await db.practiceTemplateItem.create({ data: { templateId, drillId: drill.id, order, durationMin: drill.durationMin } });
+    revalidatePath("/me");
+    revalidatePath(`/me/practices/${templateId}`);
+    return `/me/practices/${templateId}`;
+  }
+  return null;
 }
 
 export async function updateDrill(drillId: string, _: FormState, formData: FormData): Promise<FormState> {

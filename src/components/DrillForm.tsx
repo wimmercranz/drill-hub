@@ -33,12 +33,15 @@ export default function DrillForm({
   teams,
   defaults,
   submitLabel,
+  hidden = {},
 }: {
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   sports: Sport[];
   teams: Option[];
   defaults: DrillDefaults;
   submitLabel: string;
+  /** Extra fields sent with the form, e.g. the practice to add the new drill to. */
+  hidden?: Record<string, string>;
 }) {
   const [state, pending, onSubmit] = useFormAction(action);
   const [sportId, setSportId] = useState(defaults.sportId || sports[0]?.id);
@@ -156,6 +159,7 @@ export default function DrillForm({
         {visibility !== "TEAM" && <input type="hidden" name="teamId" value="" />}
       </fieldset>
 
+      {Object.entries(hidden).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
       <FormError state={state} />
       <PendingContext.Provider value={pending}>
         <SubmitButton>{submitLabel}</SubmitButton>

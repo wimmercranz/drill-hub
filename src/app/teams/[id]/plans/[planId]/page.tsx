@@ -167,7 +167,10 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       {isCoach && (
         <div className="no-print card mt-6 space-y-4 p-4">
           <div>
-            <p className="mb-2 font-semibold">Add a drill</p>
+            <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+              <p className="font-semibold">Add a drill</p>
+              <Link href={`/drills/new?plan=${plan.id}`} className="text-sm font-semibold text-brand-700">+ Create a new drill</Link>
+            </div>
             {choices.length === 0 ? (
               <p className="text-sm text-ink-500">
                 Add drills to your team library or your board first. <Link href="/drills" className="font-semibold text-brand-700">Browse drills →</Link>

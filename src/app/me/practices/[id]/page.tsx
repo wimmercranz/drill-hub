@@ -93,7 +93,10 @@ export default async function SavedPracticePage({ params }: { params: Promise<{ 
       </div>
 
       <div className="no-print card mt-6 p-4">
-        <p className="mb-2 font-semibold">Add a drill</p>
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+          <p className="font-semibold">Add a drill</p>
+          <Link href={`/drills/new?practice=${template.id}`} className="text-sm font-semibold text-brand-700">+ Create a new drill</Link>
+        </div>
         <form action={addTemplateItem.bind(null, template.id)} className="flex flex-wrap gap-2">
           <select name="drillId" className="input min-w-60 flex-1">
             {mine.length > 0 && <optgroup label="My Drills">{mine.map(option)}</optgroup>}
