@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { collectionState, drillCardInclude } from "@/lib/drills";
 import { emailConfigured } from "@/lib/email";
+import { practiceEnd } from "@/lib/ratingReminders";
 import { profileHref } from "@/lib/profiles";
 import { WEEKDAYS, addMinutes, formatDate, formatTime, nowIn, toDateInput } from "@/lib/time";
 import { toggleTeamDrill } from "@/app/actions/drills";
@@ -54,6 +55,20 @@ export default async function TeamPage({
   const isCoach = me.role === "COACH";
   const now = nowIn(team.timezone);
 
+  // Finished practices from the past week this member hasn't rated yet.
+  const toRate = (
+    await db.practicePlan.findMany({
+      where: {
+        teamId: id,
+        cancelled: false,
+        startsAt: { gte: addMinutes(now, -7 * 24 * 60), lte: now },
+        ratings: { none: { userId: user.id } },
+      },
+      orderBy: { startsAt: "desc" },
+      select: { id: true, title: true, startsAt: true, durationMin: true },
+    })
+  ).filter((p) => p.startsAt && practiceEnd({ startsAt: p.startsAt, durationMin: p.durationMin }) <= now);
+
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
 
@@ -79,6 +94,23 @@ export default async function TeamPage({
           )}
         </div>
       </div>
+
+      {toRate.length > 0 && (
+        <div className="mt-6 space-y-2">
+          {toRate.map((p) => (
+            <Link
+              key={p.id}
+              href={`/teams/${id}/plans/${p.id}`}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 hover:border-amber-300"
+            >
+              <span className="text-sm">
+                ⭐ How was <strong>{p.title}</strong> on {formatDate(p.startsAt!)}? Rate it — it&apos;s anonymous.
+              </span>
+              <span className="text-sm font-semibold text-brand-700">Rate practice →</span>
+            </Link>
+          ))}
+        </div>
+      )}
 
       <nav className="mt-6 flex gap-1 border-b border-slate-200">
         {TABS.map(([key, label]) => (

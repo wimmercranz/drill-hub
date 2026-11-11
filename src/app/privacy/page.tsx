@@ -26,6 +26,7 @@ export default function PrivacyPage() {
         <li>To provide the service you signed up for: your account, boards, teams and practice plans (<em>performance of a contract</em>).</li>
         <li>To keep the service safe and working, and prevent misuse (<em>legitimate interest</em>).</li>
         <li>To send e-mails you ask for, such as team invitations and password resets.</li>
+        <li>To remind team players by e-mail to rate a practice after it has happened. You can turn this off in your settings.</li>
       </ul>
       <p>We never sell your data and never use it for advertising.</p>
 

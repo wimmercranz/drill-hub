@@ -24,6 +24,9 @@ export function visibleTo(userId: string | null): Prisma.DrillWhereInput {
       { visibility: "PUBLIC" },
       { authorId: userId },
       { visibility: "TEAM", team: { memberships: { some: { userId } } } },
+      // Whatever coaches put in a team's library or practices, the whole team can open.
+      { teamDrills: { some: { team: { memberships: { some: { userId } } } } } },
+      { planItems: { some: { plan: { team: { memberships: { some: { userId } } } } } } },
     ],
   };
 }

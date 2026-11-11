@@ -32,6 +32,13 @@ export async function updateProfile(_: FormState, formData: FormData): Promise<F
   return { success: "Profile saved." };
 }
 
+/** Turn the "rate your practice" reminder e-mails on or off. */
+export async function setPracticeRatingEmails(on: boolean) {
+  const user = await requireUser("/settings");
+  await db.user.update({ where: { id: user.id }, data: { practiceRatingEmails: on } });
+  revalidatePath("/settings");
+}
+
 export async function createClub(_: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser("/clubs");
   const parsed = z

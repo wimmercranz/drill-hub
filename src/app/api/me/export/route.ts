@@ -9,7 +9,7 @@ export async function GET() {
     where: { id: session.id },
     select: {
       name: true, email: true, username: true, bio: true, profileVisibility: true, createdAt: true,
-      termsAcceptedAt: true, termsVersion: true, googleId: true,
+      termsAcceptedAt: true, termsVersion: true, googleId: true, practiceRatingEmails: true,
       clubs: { select: { role: true, createdAt: true, club: { select: { name: true, city: true } } } },
       memberships: { select: { role: true, title: true, createdAt: true, team: { select: { name: true } } } },
       boards: { select: { title: true, saves: { select: { drill: { select: { title: true, slug: true } } } } } },

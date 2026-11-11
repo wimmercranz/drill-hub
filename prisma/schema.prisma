@@ -29,6 +29,9 @@ model User {
   avatar            String? // small JPEG as a data URL (resized in the browser to 256px)
   avatarUpdatedAt   DateTime? // null = no picture; also used to bust the browser cache
 
+  // E-mail after each team practice asking to rate it (players can turn it off in settings)
+  practiceRatingEmails Boolean @default(true)
+
   sessions      Session[]
   memberships   Membership[]
   drills        Drill[]              @relation("DrillAuthor")
@@ -238,17 +241,18 @@ model TeamDrill {
 
 // One practice (session) and its drill plan.
 model PracticePlan {
-  id          String    @id @default(cuid())
-  title       String
-  startsAt    DateTime? // wall-clock time in the team's timezone, stored as UTC fields
-  durationMin Int? // time available for the practice
-  location    String    @default("")
-  cancelled   Boolean   @default(false)
-  notes       String    @default("")
-  createdAt   DateTime  @default(now())
-  teamId      String
-  authorId    String?
-  scheduleId  String? // set when generated from a recurring schedule
+  id                   String    @id @default(cuid())
+  title                String
+  startsAt             DateTime? // wall-clock time in the team's timezone, stored as UTC fields
+  durationMin          Int? // time available for the practice
+  location             String    @default("")
+  cancelled            Boolean   @default(false)
+  notes                String    @default("")
+  createdAt            DateTime  @default(now())
+  teamId               String
+  authorId             String?
+  scheduleId           String? // set when generated from a recurring schedule
+  ratingReminderSentAt DateTime? // when players were e-mailed to rate this practice
 
   team     Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
   author   User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)

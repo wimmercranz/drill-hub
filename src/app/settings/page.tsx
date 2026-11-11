@@ -2,7 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { profileHref } from "@/lib/profiles";
-import { deleteAccount, removeAvatar, removeClubMember, updateAvatar, updateProfile } from "@/app/actions/profile";
+import { deleteAccount, removeAvatar, removeClubMember, setPracticeRatingEmails, updateAvatar, updateProfile } from "@/app/actions/profile";
 import { logout } from "@/app/actions/auth";
 import Avatar from "@/components/Avatar";
 import AvatarUpload from "@/components/AvatarUpload";
@@ -96,6 +96,17 @@ export default async function SettingsPage() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="card mt-6 p-5">
+        <h2 className="font-bold">E-mails</h2>
+        <form action={setPracticeRatingEmails.bind(null, !user.practiceRatingEmails)} className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-ink-700">
+            After each team practice, e-mail me a reminder to rate it:{" "}
+            <strong>{user.practiceRatingEmails ? "On" : "Off"}</strong>
+          </p>
+          <SubmitButton className="btn-secondary btn-sm" pendingText="…">{user.practiceRatingEmails ? "Turn off" : "Turn on"}</SubmitButton>
+        </form>
       </section>
 
       <section className="card mt-6 p-5">
